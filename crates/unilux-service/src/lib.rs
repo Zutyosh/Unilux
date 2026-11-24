@@ -391,6 +391,7 @@ impl Service {
                 lines.into_iter().skip(skip).collect()
             })
             .unwrap_or_default();
+        let last = self.sessions().into_iter().next();
         DiagContext {
             paths: self.inner.paths.clone(),
             prefix: self.prefix(),
@@ -405,7 +406,8 @@ impl Service {
             processes: self.processes(),
             github_reachable: network,
             launch_log,
-            last_perf: self.sessions().first().and_then(|s| s.report.perf),
+            last_perf: last.as_ref().and_then(|s| s.report.perf),
+            last_video: last.as_ref().map(|s| s.report.video),
             exists: Box::new(|p| p.exists()),
         }
     }

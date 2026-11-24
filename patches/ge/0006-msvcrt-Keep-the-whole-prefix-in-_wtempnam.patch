@@ -1,0 +1,72 @@
+From 2b0de10a1e523aadbe12ac16160244b5a4f938f0 Mon Sep 17 00:00:00 2001
+From: Unilux <unilux@users.noreply.github.com>
+Date: Tue, 24 Nov 2026 21:57:45 +0100
+Subject: [PATCH] msvcrt: Keep the whole prefix in _wtempnam().
+
+GetTempFileNameW() keeps three characters of the prefix, so
+_wtempnam(dir, L"_MEI000000f4") returned _ME206.tmp. PyInstaller 6.22.1
+and later check that a onefile child's home directory is named
+_MEI<pid>..., so every onefile executable built with it (yt-dlp
+2026.11.23, the one Somnium Space 3.2.0 pins) exits with
+"Security validation failure: unexpected name of application's home
+directory!".
+---
+ dlls/msvcrt/file.c | 33 ++++++++++++++++++++++++++++-----
+ 1 file changed, 28 insertions(+), 5 deletions(-)
+
+diff --git a/dlls/msvcrt/file.c b/dlls/msvcrt/file.c
+index 4b63753..fb018b5 100644
+--- a/dlls/msvcrt/file.c
++++ b/dlls/msvcrt/file.c
+@@ -3462,20 +3462,43 @@ char * CDECL _tempnam(const char *dir, const char *prefix)
+  */
+ wchar_t * CDECL _wtempnam(const wchar_t *dir, const wchar_t *prefix)
+ {
+-  wchar_t tmpbuf[MAX_PATH];
++  static LONG counter;
++  wchar_t tmpbuf[MAX_PATH], *name, *p;
+   const wchar_t *tmp_dir = _wgetenv(L"TMP");
++  size_t len = prefix ? wcslen(prefix) : 0;
++  unsigned int i, n;
+ 
+   if (tmp_dir) dir = tmp_dir;
+ 
+   TRACE("dir (%s) prefix (%s)\n", debugstr_w(dir), debugstr_w(prefix));
+-  /* TODO: use whole prefix */
+-  if (GetTempFileNameW(dir,prefix,0,tmpbuf))
++  /* GetTempFileNameW() picks a usable directory, but keeps only three
++   * characters of the prefix. The CRT keeps all of it: PyInstaller's onefile
++   * bootloader checks that its _MEI<pid> directory name survived. */
++  if (!GetTempFileNameW(dir,prefix,0,tmpbuf))
++  {
++    TRACE("failed (%ld)\n", GetLastError());
++    return NULL;
++  }
++  DeleteFileW(tmpbuf);
++  if (!(name = wcsrchr(tmpbuf, '\\')) || (++name - tmpbuf) + len + 11 > MAX_PATH)
+   {
+     TRACE("got name (%s)\n", debugstr_w(tmpbuf));
+-    DeleteFileW(tmpbuf);
+     return _wcsdup(tmpbuf);
+   }
+-  TRACE("failed (%ld)\n", GetLastError());
++  for (i = 0; i < 0x10000; i++)
++  {
++    n = GetTickCount() + InterlockedIncrement(&counter);
++    if (len) memcpy(name, prefix, len * sizeof(wchar_t));
++    p = name + len;
++    do *p++ = '0' + n % 10; while (n /= 10);
++    *p = 0;
++    if (GetFileAttributesW(tmpbuf) == INVALID_FILE_ATTRIBUTES)
++    {
++      TRACE("got name (%s)\n", debugstr_w(tmpbuf));
++      return _wcsdup(tmpbuf);
++    }
++  }
++  TRACE("no free name\n");
+   return NULL;
+ }
+ 
+-- 
+2.56.1
+

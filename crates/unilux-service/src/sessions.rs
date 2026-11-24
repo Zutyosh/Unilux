@@ -202,6 +202,9 @@ impl Service {
                 probe.joins += part.joins;
                 probe.video.opened += part.video.opened;
                 probe.video.failed += part.video.failed;
+                probe.video.extract_failed += part.video.extract_failed;
+                probe.video.ytdlp_blocked += part.video.ytdlp_blocked;
+                probe.video.domain_blocked += part.video.domain_blocked;
                 probe.exceptions += part.exceptions;
                 probe.crash = probe.crash.or(part.crash);
                 probe.gpu = probe.gpu.or(part.gpu);

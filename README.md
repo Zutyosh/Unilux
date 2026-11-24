@@ -33,9 +33,9 @@ A recipe is a Proton plus the fixes Somnium needs on it. On the latest GE-Proton
 ```sh
 unilux recipe list                    # recipes, * = in use
 unilux recipe use recommended         # switch, build if needed, repair
-unilux recipe build --proton ge:GE-Proton11-12   # build in podman/docker
+unilux recipe build --proton ge:GE-Proton11-14   # build in podman/docker
 unilux proton available cachyos       # upstream releases, with patch status
-unilux proton use ge:GE-Proton11-12   # switch Proton under the current recipe
+unilux proton use ge:GE-Proton11-14   # switch Proton under the current recipe
 unilux patch status                   # bundle installed, files intact?
 unilux session list                   # what each play session showed (crashes, worlds, videos, fps)
 unilux recipe verdict mine            # where a recipe stands, same rules as the community bot

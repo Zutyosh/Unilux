@@ -606,7 +606,11 @@ impl Server {
             .open(path)
             .await
         {
-            let _ = f.write_all(line.as_bytes()).await;
+            // tokio's File finishes writes on a blocking thread; without the
+            // flush a reader right after can miss the line.
+            if f.write_all(line.as_bytes()).await.is_ok() {
+                let _ = f.flush().await;
+            }
         }
     }
 }

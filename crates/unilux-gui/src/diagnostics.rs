@@ -117,6 +117,20 @@ fn check_meta(id: &str) -> (&'static str, &'static str) {
                 "Réglages du compositeur et du GPU, gels et ralentissements de votre dernière partie.",
             ),
         ),
+        "memory" => (
+            tr("Memory", "Mémoire"),
+            tr(
+                "Your last game stayed out of swap.",
+                "Votre dernière partie n'a pas débordé dans le swap.",
+            ),
+        ),
+        "video" => (
+            tr("Videos", "Vidéos"),
+            tr(
+                "yt-dlp started and extracted the YouTube links of your last game.",
+                "yt-dlp a démarré et extrait les liens YouTube de votre dernière partie.",
+            ),
+        ),
         _ => ("?", ""),
     }
 }
@@ -209,6 +223,21 @@ const FR: &[(&str, &str, &str)] = &[
         "La ligne en détail nomme souvent un chemin absent ou une permission manquante.",
     ),
     (
+        "yt-dlp cannot start under this Proton",
+        "yt-dlp ne démarre pas avec ce Proton",
+        "Le yt-dlp.exe de Somnium vérifie le nom de son dossier temporaire, que Wine raccourcit : aucune vidéo YouTube ne charge. Utilisez une recette avec le correctif pyinstaller-tempnam (la recette recommandée l'a) : unilux recipe use recommended.",
+    ),
+    (
+        "Somnium refused some video links",
+        "Somnium a refusé des liens vidéo",
+        "Somnium ne lit que les liens des domaines de sa propre liste ; le lecteur reste vide sans erreur. C'est une règle du jeu, pas de Wine : utilisez un lien YouTube ou un hébergeur autorisé par le créateur du monde.",
+    ),
+    (
+        "Some YouTube links could not be extracted",
+        "Certains liens YouTube n'ont pas pu être extraits",
+        "yt-dlp a démarré mais n'a pas pu lire ces liens : vidéos privées, avec limite d'âge, ou YouTube a changé. Essayez une autre vidéo ; si toutes échouent, Somnium doit mettre à jour yt-dlp.",
+    ),
+    (
         "Freezes in the last session",
         "Gels pendant la dernière partie",
         "Des gels irréguliers coïncident souvent avec des chargements : mondes, arrivée d'avatars, vidéos.",
@@ -231,7 +260,7 @@ const FR: &[(&str, &str, &str)] = &[
     (
         "Slowdowns in the last session",
         "Ralentissements pendant la dernière partie",
-        "MangoHud n'a pas mesuré la charge du GPU : la cause reste inconnue.",
+        "Ni la charge ni la fréquence du GPU ne les expliquent, ou MangoHud ne les a pas mesurées. Ils viennent en général des chargements sur le thread principal du jeu : mondes, arrivée d'avatars, vidéos.",
     ),
 ];
 
@@ -272,6 +301,18 @@ const FR_DYN: &[(&str, &str, &str, &str)] = &[
         " processes)",
         "Somnium Space est en cours d'exécution ({} processus)",
         "",
+    ),
+    (
+        "The last session pushed ",
+        " GB to swap",
+        "La dernière partie a envoyé {} Go dans le swap",
+        "Les pages que le jeu réutilise reviennent du disque et l'image les attend : gels au chargement des mondes et des avatars. Activez zram (zram-generator ou le paquet zram de votre distribution) pour garder le swap en RAM compressée, et fermez navigateur et applications lourdes avant de jouer.",
+    ),
+    (
+        "The last session pushed ",
+        " GB to zram",
+        "La dernière partie a envoyé {} Go dans zram",
+        "zram garde le swap peu coûteux, mais le noyau a quand même évincé de la mémoire du jeu. Fermez les applications lourdes avant de jouer ; avec zram, un vm.swappiness entre 100 et 180 évince les pages inactives avant celles du jeu.",
     ),
     (
         "The game freezes every ",

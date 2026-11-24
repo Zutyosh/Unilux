@@ -6,12 +6,30 @@
 schema = 1
 
 # What a fresh install uses. It must have a verified bundle below.
-recommended_proton = "ge:GE-Proton11-12"
+recommended_proton = "ge:GE-Proton11-14"
 
-# The recommended recipe on GE-Proton11-12: TLS client-certificate fixes
+# The recommended recipe on GE-Proton11-14: TLS client-certificate fixes
+# (secur32, crypt32, rsaenh from upstream Wine 11.15, commit e99fc2f7) and
+# msvcrt from GE-Proton11-14's own Wine with the _wtempnam fix, without
+# which the PyInstaller-built yt-dlp.exe Somnium 3.2.0 pins cannot start.
+# Tested end to end in VR (WiVRn, RX 7900 XT): sign-in, YouTube, 4 worlds.
+[[bundle]]
+id = "unilux-ge11-14-1"
+title = "Unilux bundle for GE-Proton11-14"
+archive_format = 2
+url = "https://github.com/Zutyosh/Unilux/releases/download/v0.3.2/unilux-ge-GE-Proton11-14-9c21acffcd1b8c0e.tar.gz"
+sha256 = "a2419b15ba24838be4c42c358ef9b94665a46721b5263781241c8837e300ce32"
+series = ["upstream", "proton"]
+# Only 11-14: its msvcrt is built from that tag's Wine.
+targets = [
+  { proton = "ge:GE-Proton11-14", status = "verified" },
+]
+
+# The previous recommended recipe, on GE-Proton11-12: TLS client-certificate fixes
 # (secur32, crypt32, rsaenh from upstream Wine 11.15, commit e99fc2f7).
 # GE's own winedmo and kernelbase are left alone. Nothing in it comes
-# from the Proton's tree, so later GE-Proton11 releases can use it too.
+# from the Proton's tree, so later GE-Proton11 releases can use it too
+# for sign-in. It lacks the yt-dlp fix: YouTube fails with Somnium 3.2.0.
 [[bundle]]
 id = "unilux-ge11-12-1"
 title = "Unilux bundle for GE-Proton11-12"
@@ -21,6 +39,9 @@ sha256 = "42ccc9184286d8c45f50c32893ededf4c7ba18118b1862c9d15726a2edb546df"
 series = ["tls"]
 targets = [
   { proton = "ge:GE-Proton11-12", status = "verified" },
+  # 11-13 broke 32-bit Vulkan on Wine-Wayland (HDR colorspace layer built
+  # 64-bit only, GE #996/#997); fixed in 11-14 the same day.
+  { proton = "ge:GE-Proton11-13", status = "broken" },
   { proton = "ge:GE-Proton11-*", status = "untested" },
 ]
 

@@ -690,10 +690,11 @@ mod tests {
         let g = p.groups();
         assert_eq!(
             g.iter().map(|g| g.id.as_str()).collect::<Vec<_>>(),
-            ["upstream"],
+            ["upstream", "proton"],
             "GE's own winedmo and kernelbase ship untouched"
         );
         assert_eq!(g[0].dlls, ["secur32", "crypt32", "rsaenh"]);
+        assert_eq!(g[1].dlls, ["msvcrt"], "PyInstaller onefile (yt-dlp)");
     }
 
     #[test]
@@ -704,10 +705,11 @@ mod tests {
             .unwrap()
             .materialise(d.path())
             .unwrap();
-        assert_eq!(ids, ["upstream"]);
+        assert_eq!(ids, ["upstream", "proton"]);
         let series = std::fs::read_to_string(d.path().join("series.toml")).unwrap();
         assert!(series.contains("upstream_commit = \"e99fc2f"));
-        assert!(!d.path().join("proton").exists());
+        let sup = std::fs::read_to_string(d.path().join("proton/superseded")).unwrap();
+        assert!(sup.contains("lacks dlls/msvcrt/file.c TODO: use whole prefix"));
         assert_eq!(
             std::fs::read_dir(d.path().join("upstream"))
                 .unwrap()

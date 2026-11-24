@@ -166,6 +166,13 @@ mod tests {
             "11-5's winedmo must not replace a newer GE's"
         );
         assert_eq!(m[0].status, TargetStatus::Verified);
+        assert!(
+            e.resolve(&ProtonId::new("ge", "GE-Proton11-13")).is_empty(),
+            "11-13's 32-bit Vulkan regression is listed as broken"
+        );
+        let m = e.resolve(&ProtonId::new("ge", "GE-Proton11-14"));
+        assert_eq!(m[0].bundle.id, "unilux-ge11-14-1", "msvcrt for yt-dlp");
+        assert_eq!(m[0].status, TargetStatus::Verified);
         assert!(c.resolve(&ProtonId::new("ge", "GE-Proton10-4")).is_empty());
         assert!(
             c.resolve(&ProtonId::new("cachyos", "cachyos-11.0-20261015-slr"))

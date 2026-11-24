@@ -14,6 +14,32 @@ pub struct VrTuning {
     pub amd_power: Vec<PowerProfile>,
     /// XR overlays running next to the game.
     pub overlays: Vec<String>,
+    pub memory: Memory,
+}
+
+/// How the kernel swaps. A game that spills to a disk swap stalls on
+/// every page it touches again; zram makes the same spill cheap.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+pub struct Memory {
+    /// /proc/sys/vm/swappiness
+    pub swappiness: Option<u32>,
+    /// Active swap areas from /proc/swaps.
+    pub swaps: Vec<String>,
+    pub zram: bool,
+}
+
+pub fn memory(swappiness: Option<&str>, swaps: Option<&str>) -> Memory {
+    let swaps: Vec<String> = swaps
+        .unwrap_or_default()
+        .lines()
+        .skip(1)
+        .filter_map(|l| l.split_whitespace().next().map(str::to_string))
+        .collect();
+    Memory {
+        swappiness: swappiness.and_then(|s| s.trim().parse().ok()),
+        zram: swaps.iter().any(|s| s.starts_with("/dev/zram")),
+        swaps,
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -50,6 +76,10 @@ pub fn vr_tuning(host: &dyn Host, gpus: &[GpuInfo]) -> VrTuning {
             })
             .collect(),
         overlays: overlays(host),
+        memory: memory(
+            host.read(Path::new("/proc/sys/vm/swappiness")).as_deref(),
+            host.read(Path::new("/proc/swaps")).as_deref(),
+        ),
     }
 }
 

@@ -8,7 +8,7 @@ use unilux_components::ProtonId;
 use unilux_components::sources::LAUNCHER_REL_PATH;
 use unilux_core::{Config, Paths, Severity};
 use unilux_install::InstallState;
-use unilux_patches::community::{DipCause, Perf};
+use unilux_patches::community::{DipCause, Perf, Video};
 use unilux_patches::{PatchStatus, TargetStatus};
 use unilux_system::procs::ProcInfo;
 use unilux_system::{SystemReport, VrStatus};
@@ -118,6 +118,8 @@ pub struct DiagContext {
     pub launch_log: Vec<String>,
     /// Frame pacing of the last recorded session.
     pub last_perf: Option<Perf>,
+    /// Video opens and failures of the last recorded session.
+    pub last_video: Option<Video>,
     pub exists: Box<dyn Fn(&std::path::Path) -> bool + Send + Sync>,
 }
 
@@ -180,6 +182,14 @@ pub const CHECKS: &[Check] = &[
     Check {
         id: "vr_perf",
         run: vr_perf,
+    },
+    Check {
+        id: "memory",
+        run: memory,
+    },
+    Check {
+        id: "video",
+        run: video,
     },
 ];
 
@@ -538,7 +548,7 @@ fn vr_perf(ctx: &DiagContext) -> Vec<Finding> {
             DipCause::Unknown => (
                 Severity::Info,
                 "Slowdowns in the last session",
-                "MangoHud did not report GPU load, so the cause is unknown.",
+                "Neither the GPU load nor its clock explains them, or MangoHud did not report them. They usually come from loading on the game's main thread: worlds, avatars joining, videos.",
             ),
         };
         let mut f = Finding::new("vr_perf", sev, title)
@@ -558,6 +568,73 @@ fn vr_perf(ctx: &DiagContext) -> Vec<Finding> {
             f = f.evidence(e);
         }
         out.push(f);
+    }
+    out
+}
+
+/// Swap use above this during a session is worth a look.
+const SWAP_WARN_GB: f32 = 0.5;
+const SWAP_ADVICE: &str = "Pages the game touches again come back from disk, and the frame waits for them: freezes when loading worlds and avatars. Set up zram (zram-generator or your distribution's zram package) so swapped pages stay in compressed RAM, and close browsers or other heavy apps before playing.";
+const ZRAM_ADVICE: &str = "zram keeps swap cheap, but the kernel still evicted game memory. Close other heavy apps before playing; with zram, vm.swappiness between 100 and 180 swaps idle pages before the game's.";
+
+fn memory(ctx: &DiagContext) -> Vec<Finding> {
+    let Some(peak) = ctx.last_perf.and_then(|p| p.swap_peak_gb) else {
+        return vec![];
+    };
+    if peak < SWAP_WARN_GB {
+        return vec![];
+    }
+    let m = &ctx.system.vr_tuning.memory;
+    let mut f = Finding::new(
+        "memory",
+        if m.zram {
+            Severity::Info
+        } else {
+            Severity::Warn
+        },
+        format!(
+            "The last session pushed {peak:.1} GB to {}",
+            if m.zram { "zram" } else { "swap" }
+        ),
+    )
+    .evidence(format!("MangoHud swap_used peaked at {peak:.2} GB"));
+    if let Some(s) = m.swappiness {
+        f = f.evidence(format!("vm.swappiness = {s}"));
+    }
+    f = f.evidence(if m.swaps.is_empty() {
+        "no swap area listed in /proc/swaps".to_string()
+    } else {
+        format!("swap areas: {}", m.swaps.join(", "))
+    });
+    let advice = if m.zram { ZRAM_ADVICE } else { SWAP_ADVICE };
+    vec![f.advice(advice)]
+}
+
+fn video(ctx: &DiagContext) -> Vec<Finding> {
+    let Some(v) = ctx.last_video else {
+        return vec![];
+    };
+    if v.ytdlp_blocked > 0 {
+        return vec![
+            Finding::new("video", Severity::Error, "yt-dlp cannot start under this Proton")
+                .evidence(format!("last session: {} YouTube extractions refused by PyInstaller (\"Security validation failure: unexpected name of application's home directory\")", v.ytdlp_blocked))
+                .advice("Somnium's yt-dlp.exe checks the name of its temporary directory, and stock Wine shortens it, so no YouTube video loads. Use a recipe with the pyinstaller-tempnam fix (the built-in recommended one has it): unilux recipe use recommended."),
+        ];
+    }
+    let mut out = Vec::new();
+    if v.domain_blocked > 0 {
+        out.push(
+            Finding::new("video", Severity::Info, "Somnium refused some video links")
+                .evidence(format!("last session: {} links refused with \"Domain not allowed\" in Player.log", v.domain_blocked))
+                .advice("Somnium only plays links from domains on its own allow list; the player stays blank without an error. This is the game's rule, not Wine: use a YouTube link or a host the world's creator allows."),
+        );
+    }
+    if v.extract_failed > 0 {
+        out.push(
+            Finding::new("video", Severity::Info, "Some YouTube links could not be extracted")
+                .evidence(format!("last session: {} failed yt-dlp extractions, {} of {} video opens failed", v.extract_failed, v.failed.min(v.opened), v.opened))
+                .advice("yt-dlp ran but could not read these links: private or age-restricted videos, or YouTube changed something. Try another video; if every one fails, Somnium needs a yt-dlp update."),
+        );
     }
     out
 }
@@ -627,6 +704,7 @@ mod tests {
             github_reachable: Some(true),
             launch_log: vec![],
             last_perf: None,
+            last_video: None,
             exists: Box::new(move |p: &Path| set.contains(p)),
         };
         f(&mut c);
@@ -776,6 +854,57 @@ mod tests {
         assert_eq!(v.len(), 1);
         assert_eq!(v[0].fix, Some(FixId::Repair));
         assert!(launch_log(&ctx(&[], |c| c.launch_log = vec!["fine".into()])).is_empty());
+    }
+
+    #[test]
+    fn swap_and_video() {
+        let perf = |gb| Perf {
+            swap_peak_gb: gb,
+            ..Default::default()
+        };
+        assert!(memory(&ctx(&[], |c| c.last_perf = Some(perf(Some(0.1))))).is_empty());
+        let v = memory(&ctx(&[], |c| c.last_perf = Some(perf(Some(2.5)))));
+        assert_eq!(v[0].severity, Severity::Warn);
+        let v = memory(&ctx(&[], |c| {
+            c.last_perf = Some(perf(Some(2.5)));
+            c.system.vr_tuning.memory = unilux_system::memory(
+                Some("60\n"),
+                Some("Filename Type\n/dev/zram0 partition 8G 0 100\n"),
+            );
+        }));
+        assert_eq!(v[0].severity, Severity::Info);
+        assert!(v[0].evidence.iter().any(|e| e.contains("/dev/zram0")));
+        assert!(
+            v[0].advice
+                .as_deref()
+                .unwrap()
+                .contains("between 100 and 180")
+        );
+
+        let blocked = Video {
+            opened: 9,
+            failed: 7,
+            extract_failed: 5,
+            ytdlp_blocked: 5,
+            domain_blocked: 0,
+        };
+        let v = video(&ctx(&[], |c| c.last_video = Some(blocked)));
+        assert_eq!(v[0].severity, Severity::Error);
+        let v = video(&ctx(&[], |c| {
+            c.last_video = Some(Video {
+                ytdlp_blocked: 0,
+                ..blocked
+            })
+        }));
+        assert_eq!(v[0].severity, Severity::Info);
+        assert!(video(&ctx(&[], |c| c.last_video = Some(Video::default()))).is_empty());
+        let v = video(&ctx(&[], |c| {
+            c.last_video = Some(Video {
+                domain_blocked: 1,
+                ..Video::default()
+            })
+        }));
+        assert_eq!(v[0].title, "Somnium refused some video links");
     }
 
     #[test]

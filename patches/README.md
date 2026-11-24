@@ -59,7 +59,7 @@ recipe; other recipes always use a bundle built for them.
   hotfixes, video rework); older tags fall back to the video rework alone.
 - `superseded_if` skips an ingredient the Proton already carries in its
   own form. Since GE-Proton11-12 (`0078-winedmo-open-http-and-rtsp-media-asynchronously`
-  and friends), `media-by-url` is skipped there.
+  and friends), `media-by-url` is skipped there; still true on GE-Proton11-14.
 - Only DLLs the applied patches changed are shipped from a Proton tree; GE's
   own `winedmo` and ffmpeg stay when nothing touched them.
 - The builder stops at the first patch that does not apply and names it,

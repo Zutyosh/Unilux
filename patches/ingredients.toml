@@ -30,6 +30,21 @@ patches = [
 ]
 dlls = ["secur32", "crypt32", "rsaenh"]
 unix_libs = ["secur32", "crypt32"]
+# Still missing in GE-Proton11-14's Wine (no SECPKG_ATTR_ISSUER_LIST_EX in
+# schannel.c). These DLLs replace GE's whole, so GE's own crypt32/secur32
+# hotfixes (pfx, chain engine, SECBUFFER_MISSING) are not in the game's
+# prefix while this ingredient is on.
+
+[[ingredient]]
+id = "pyinstaller-tempnam"
+title = "Video: yt-dlp starts again"
+summary = "Keeps the whole prefix in msvcrt's _wtempnam(). Wine kept three characters, so PyInstaller 6.22.1+ onefile programs, like the yt-dlp.exe Somnium 3.2.0 pins, exit with 'Security validation failure: unexpected name of application's home directory!' and no YouTube video loads."
+kind = "patch"
+base = "proton"
+patches = ["ge/0006-msvcrt-Keep-the-whole-prefix-in-_wtempnam.patch"]
+dlls = ["msvcrt"]
+# Skipped once the Proton's Wine keeps the whole prefix itself.
+superseded_if = [{ file = "dlls/msvcrt/file.c", lacks = "TODO: use whole prefix" }]
 
 [[ingredient]]
 id = "media-by-url"
@@ -45,7 +60,7 @@ patches = [
 ]
 dlls = ["winedmo"]
 unix_libs = ["winedmo"]
-# GE-Proton11-12 and later open http(s) and rtsp media by URL from the IO
+# GE-Proton11-12 and later (checked up to 11-14) open http(s) and rtsp media by URL from the IO
 # work item themselves (ge-video-rework 0078 and friends).
 superseded_if = [{ file = "dlls/winedmo/media_source.c", lacks = "URLOpenBlockingStreamW" }]
 

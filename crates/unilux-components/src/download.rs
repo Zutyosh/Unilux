@@ -101,7 +101,14 @@ impl Downloader {
         &self.client
     }
 
+    /// GET a text document. `file://` reads a local file instead, so a
+    /// catalog can be tried before it is published.
     pub async fn text(&self, url: &str) -> Result<String> {
+        if let Some(path) = url.strip_prefix("file://") {
+            return tokio::fs::read_to_string(path)
+                .await
+                .ctx(|| format!("reading {path}"));
+        }
         self.client
             .get(url)
             .send()
@@ -113,7 +120,7 @@ impl Downloader {
             .map_err(|e| Error::Network(format!("{url}: {e}")))
     }
 
-    /// Download `url` to `dest`. A partial `dest.part` from an earlier
+    /// Download `url` to `dest` (`file://` copies a local file). A partial `dest.part` from an earlier
     /// attempt is resumed with an HTTP Range request. When a checksum is
     /// given the file is verified before being moved into place; a bad
     /// file is deleted so the next attempt starts clean.
@@ -136,46 +143,53 @@ impl Downloader {
             return Ok(dest.to_path_buf());
         }
         let part = dest.with_extension("part");
-        let mut have = tokio::fs::metadata(&part)
-            .await
-            .map(|m| m.len())
-            .unwrap_or(0);
-        let mut req = self.client.get(url);
-        if have > 0 {
-            req = req.header(reqwest::header::RANGE, format!("bytes={have}-"));
-        }
-        let resp = req
-            .send()
-            .await
-            .and_then(|r| r.error_for_status())
-            .map_err(|e| Error::Network(format!("{url}: {e}")))?;
-        let resumed = resp.status() == reqwest::StatusCode::PARTIAL_CONTENT;
-        if !resumed {
-            have = 0;
-        }
-        let total = resp.content_length().map(|l| l + have);
-        let mut file = tokio::fs::OpenOptions::new()
-            .create(true)
-            .write(true)
-            .append(resumed)
-            .truncate(!resumed)
-            .open(&part)
-            .await
-            .ctx(|| format!("opening {}", part.display()))?;
-        let mut stream = resp.bytes_stream();
-        progress(have, total);
-        while let Some(chunk) = stream.next().await {
-            let chunk = chunk.map_err(|e| Error::Network(format!("{url}: {e}")))?;
-            file.write_all(&chunk)
+        if let Some(src) = url.strip_prefix("file://") {
+            let n = tokio::fs::copy(src, &part)
                 .await
-                .ctx(|| format!("writing {}", part.display()))?;
-            have += chunk.len() as u64;
+                .ctx(|| format!("copying {src}"))?;
+            progress(n, Some(n));
+        } else {
+            let mut have = tokio::fs::metadata(&part)
+                .await
+                .map(|m| m.len())
+                .unwrap_or(0);
+            let mut req = self.client.get(url);
+            if have > 0 {
+                req = req.header(reqwest::header::RANGE, format!("bytes={have}-"));
+            }
+            let resp = req
+                .send()
+                .await
+                .and_then(|r| r.error_for_status())
+                .map_err(|e| Error::Network(format!("{url}: {e}")))?;
+            let resumed = resp.status() == reqwest::StatusCode::PARTIAL_CONTENT;
+            if !resumed {
+                have = 0;
+            }
+            let total = resp.content_length().map(|l| l + have);
+            let mut file = tokio::fs::OpenOptions::new()
+                .create(true)
+                .write(true)
+                .append(resumed)
+                .truncate(!resumed)
+                .open(&part)
+                .await
+                .ctx(|| format!("opening {}", part.display()))?;
+            let mut stream = resp.bytes_stream();
             progress(have, total);
+            while let Some(chunk) = stream.next().await {
+                let chunk = chunk.map_err(|e| Error::Network(format!("{url}: {e}")))?;
+                file.write_all(&chunk)
+                    .await
+                    .ctx(|| format!("writing {}", part.display()))?;
+                have += chunk.len() as u64;
+                progress(have, total);
+            }
+            file.flush()
+                .await
+                .ctx(|| format!("flushing {}", part.display()))?;
+            drop(file);
         }
-        file.flush()
-            .await
-            .ctx(|| format!("flushing {}", part.display()))?;
-        drop(file);
         if let Some(sum) = checksum {
             let sum = sum.clone();
             let p = part.clone();
@@ -292,5 +306,47 @@ mod tests {
             .await
             .unwrap_err();
         assert!(matches!(err, Error::Network(_)));
+    }
+
+    #[tokio::test]
+    async fn text_reads_file_urls() {
+        let d = tempfile::tempdir().unwrap();
+        let f = d.path().join("catalog.toml");
+        std::fs::write(&f, "schema = 1").unwrap();
+        let t = Downloader::new()
+            .text(&format!("file://{}", f.display()))
+            .await
+            .unwrap();
+        assert_eq!(t, "schema = 1");
+        assert!(
+            Downloader::new()
+                .text("file:///nonexistent/x")
+                .await
+                .is_err()
+        );
+        let out = d.path().join("out/copy.toml");
+        let sum = Checksum::Sha256(hex::encode(Sha256::digest(b"schema = 1")));
+        Downloader::new()
+            .fetch(
+                &format!("file://{}", f.display()),
+                &out,
+                Some(&sum),
+                |_, _| {},
+            )
+            .await
+            .unwrap();
+        assert_eq!(std::fs::read_to_string(&out).unwrap(), "schema = 1");
+        let bad = Checksum::Sha256("00".repeat(32));
+        assert!(
+            Downloader::new()
+                .fetch(
+                    &format!("file://{}", f.display()),
+                    &d.path().join("bad"),
+                    Some(&bad),
+                    |_, _| {}
+                )
+                .await
+                .is_err()
+        );
     }
 }

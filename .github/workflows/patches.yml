@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       proton:
-        description: "Proton build as provider:tag (ge:GE-Proton11-12, cachyos:cachyos-11.0-20261015-slr)"
+        description: "Proton build as provider:tag (ge:GE-Proton11-14, cachyos:cachyos-11.0-20261015-slr)"
         required: true
       recipe:
         description: "Recipe id from patches/recipes/"

@@ -17,7 +17,7 @@ pub use openxr::{
     active_runtime, installed_runtimes, openvr_runtime, share_root_for, vr_status,
 };
 pub use tools::{GpuInfo, PythonVersion, find_in_path, gpus, python_version, vulkan_icds};
-pub use vrperf::{Compositor, PowerProfile, VrTuning, power_profile, vr_tuning};
+pub use vrperf::{Compositor, Memory, PowerProfile, VrTuning, memory, power_profile, vr_tuning};
 
 use serde::Serialize;
 

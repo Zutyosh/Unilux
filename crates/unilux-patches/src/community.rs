@@ -57,8 +57,22 @@ pub enum Crash {
 pub struct Video {
     /// Players that started opening a stream or file.
     pub opened: u32,
-    /// Opens that failed (AVPro errors, yt-dlp extraction errors).
+    /// Opens that failed (AVPro errors). A failed yt-dlp extraction is
+    /// followed by AVPro opening the page URL and failing, so it is
+    /// counted here once, not twice.
     pub failed: u32,
+    /// yt-dlp extractions that failed (`[VideoExtractor] Failed to extract`).
+    #[serde(default)]
+    pub extract_failed: u32,
+    /// Of those, yt-dlp.exe that did not start at all: PyInstaller's
+    /// onefile check refused Wine's temporary directory name.
+    #[serde(default)]
+    pub ytdlp_blocked: u32,
+    /// Links Somnium itself refused before opening them, because their
+    /// domain is not on its allow list (`Domain not allowed`). The player
+    /// stays blank without an AVPro error.
+    #[serde(default)]
+    pub domain_blocked: u32,
 }
 
 /// Frame pacing from MangoHud's log of the game's own presents.
@@ -77,9 +91,15 @@ pub struct Perf {
     /// Single frames frozen for at least [HITCH_MS].
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hitches: Option<Hitches>,
+    /// Most swap in use during the session, in GB (MangoHud's swap_used).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub swap_peak_gb: Option<f32>,
 }
 
 pub const HITCH_MS: f32 = 150.0;
+/// Longest interval still read as a timer. Past it, a few loading bursts
+/// that happen to line up look periodic in a long session.
+pub const MAX_PERIOD_S: f32 = 120.0;
 /// MangoHud's frame time is the time since the previous present. Past
 /// this the game was not drawing to its window at all (headset only,
 /// minimised): a hole in the log, not a frame, so it is left out.
@@ -374,10 +394,15 @@ pub fn scan_player_log(r: impl std::io::BufRead) -> LogProbe {
             p.joins += 1;
         } else if l.starts_with("[AVProVideo] Opening") {
             p.video.opened += 1;
-        } else if l.starts_with("[AVProVideo] Error")
-            || l.starts_with("[VideoExtractor] Failed to extract")
-        {
+        } else if l.starts_with("[AVProVideo] Error") {
             p.video.failed += 1;
+        } else if l.starts_with("[VideoExtractor] Failed to extract") {
+            p.video.extract_failed += 1;
+            if l.contains("Security validation failure") {
+                p.video.ytdlp_blocked += 1;
+            }
+        } else if l.starts_with("[Video Player Controller]: Domain not allowed") {
+            p.video.domain_blocked += 1;
         } else if l.starts_with("EXCEPTION |") {
             p.exceptions += 1;
         } else if l.starts_with("Input System module state changed to: Shutdown") {
@@ -418,6 +443,9 @@ pub fn parse_mangohud(text: &str) -> Option<Perf> {
         stutters: ft.iter().filter(|f| **f > 2.0 * median).count() as u64,
         dips: dips(&rows, median),
         hitches: hitches(&rows),
+        swap_peak_gb: mangohud_rows(text, ["swap_used"])
+            .and_then(|r| r.iter().map(|x| x.1[0]).reduce(f32::max))
+            .filter(|m| *m > 0.0),
     })
 }
 
@@ -445,7 +473,7 @@ fn hitches(rows: &[(f32, [f32; 3])]) -> Option<Hitches> {
     let period_s = at
         .windows(2)
         .map(|w| w[1] - w[0])
-        .filter(|g| *g >= 2.0)
+        .filter(|g| (2.0..=MAX_PERIOD_S).contains(g))
         .map(|g| (g, follows(g)))
         .max_by_key(|(_, m)| m.len())
         .filter(|(_, m)| m.len() >= 4 && m.len() * 5 >= at.len())
@@ -646,6 +674,9 @@ mod tests {
             video: Video {
                 opened: 4,
                 failed: 0,
+                extract_failed: 0,
+                ytdlp_blocked: 0,
+                domain_blocked: 0,
             },
             perf: Some(Perf {
                 frames: 1000,
@@ -655,6 +686,7 @@ mod tests {
                 stutters: 3,
                 dips: None,
                 hitches: None,
+                swap_peak_gb: None,
             }),
             exceptions: 0,
         }
@@ -702,20 +734,26 @@ mod tests {
         crashy[1].video = Video {
             opened: 10,
             failed: 5,
+            extract_failed: 0,
+            ytdlp_blocked: 0,
+            domain_blocked: 0,
         };
         assert_eq!(verify(&r, &crashy, key).status, Status::Proposed);
     }
 
     #[test]
     fn player_log_probe() {
-        let log = "Renderer:  AMD Radeon RX 7900 XT (RADV NAVI31)\n[XR] [760] Available Layers: (0)\n\tWe have joined the game session. Spawning\n\t[World Transition]: Transition scene unloaded: IN_WORLD, False\n[AVProVideo] Opening https://x (offset 0)\n[AVProVideo] Opening rtsp://y\n\t[VideoExtractor] Failed to extract: \nEXCEPTION | 10/11\nInput System module state changed to: Shutdown.\nCrash!!!\n";
+        let log = "Renderer:  AMD Radeon RX 7900 XT (RADV NAVI31)\n[XR] [760] Available Layers: (0)\n\tWe have joined the game session. Spawning\n\t[World Transition]: Transition scene unloaded: IN_WORLD, False\n[AVProVideo] Opening https://x (offset 0)\n[AVProVideo] Opening rtsp://y\n\t[VideoExtractor] Failed to extract:  | [VideoExtractor] yt-dlp error: [PYI-3436:ERROR] Security validation failure: unexpected name of application's home directory!\n[AVProVideo] Opening https://youtu.be/z (offset 0)\n[AVProVideo] Error: Loading failed.\n\t[Video Player Controller]: Domain not allowed: commondatastorage.googleapis.com\nEXCEPTION | 10/11\nInput System module state changed to: Shutdown.\nCrash!!!\n";
         let p = scan_player_log(log.as_bytes());
         assert_eq!((p.worlds, p.joins, p.exceptions), (1, 1, 1));
         assert_eq!(
             p.video,
             Video {
-                opened: 2,
-                failed: 1
+                opened: 3,
+                failed: 1,
+                extract_failed: 1,
+                ytdlp_blocked: 1,
+                domain_blocked: 1
             }
         );
         assert_eq!(p.crash, Some(Crash::OnExit));
@@ -818,6 +856,16 @@ mod tests {
             s.push_str(&format!("90,{ft}\n"));
         }
         assert_eq!(parse_mangohud(&s).unwrap().hitches.unwrap().period_s, None);
+        let mut s = String::from("fps,frametime\n");
+        for i in 0..400_000 {
+            let ft = if i % 80_000 < 6 && i > 0 { 300.0 } else { 11.1 };
+            s.push_str(&format!("90,{ft}\n"));
+        }
+        assert_eq!(
+            parse_mangohud(&s).unwrap().hitches.unwrap().period_s,
+            None,
+            "bursts 15 min apart are loading, not a timer"
+        );
     }
 
     #[test]

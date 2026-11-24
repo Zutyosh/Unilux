@@ -440,7 +440,11 @@ pub async fn session(out: &Out, svc: &Service, cmd: SessionCmd) -> ExitCode {
                         None => "",
                     },
                     if r.flat { "  (desktop)" } else { "" }
-                )
+                ) + if r.video.ytdlp_blocked > 0 {
+                    "  yt-dlp blocked"
+                } else {
+                    ""
+                }
             })
         }),
         SessionCmd::Show { id } => match svc.sessions().into_iter().find(|s| s.id == id) {
