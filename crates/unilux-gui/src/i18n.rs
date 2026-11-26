@@ -110,11 +110,10 @@ pub fn recipe_desc(id: &str, fallback: &str) -> String {
 
 /// Step label for an install step id, falling back to the id.
 pub fn step(id: &str) -> String {
-    let s = t(&format!("step.{id}"));
-    if s == "?" {
-        id.replace('_', " ")
-    } else {
+    if let Some(s) = lookup(&format!("step.{id}")) {
         s.to_string()
+    } else {
+        id.replace('_', " ")
     }
 }
 
