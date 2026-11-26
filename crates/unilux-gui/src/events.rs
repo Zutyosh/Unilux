@@ -1,11 +1,11 @@
 //! Somnium Space's live side on the main screen: players online, the next
 //! events, and the optional sign-in that unlocks them.
 
-use chrono::{Datelike, Local, TimeZone, Timelike};
+use chrono::{Local, TimeZone};
 use freya::prelude::*;
 use unilux_service::{Account, LoginStep, TwoFactor, TwoFactorMethod, UpcomingEvent};
 
-use crate::i18n::{Lang, current, t, t_with};
+use crate::i18n::{DateStyle, t, t_date, t_with};
 use crate::state::{Screen, Section, Ui};
 use crate::svc;
 use crate::theme::{RADIUS_CONTROL, RADIUS_PILL, T, alpha, glass, size, space};
@@ -160,11 +160,10 @@ fn countdown(ev: &UpcomingEvent, next: bool) -> Rect {
     } else {
         let s = ev.start - now;
         let (d, h, m) = (s / 86400, s % 86400 / 3600, s % 3600 / 60);
-        let t = match (d, current()) {
-            (0, _) if h == 0 => format!("{m} min"),
-            (0, _) => format!("{h} h {m:02}"),
-            (d, Lang::Fr) => format!("{d} j {h} h"),
-            (d, Lang::En) => format!("{d} d {h} h"),
+        let t = match d {
+            0 if h == 0 => format!("{m} min"),
+            0 => format!("{h} h {m:02}"),
+            d => t_with("events-countdown-days", &[d.to_string(), h.to_string()]),
         };
         (
             t_with("events-text", &[t]),
@@ -190,39 +189,10 @@ fn when(ev: &UpcomingEvent) -> String {
     let Some(start) = at(ev.start) else {
         return String::new();
     };
-    let fr = current() == Lang::Fr;
-    let days_en = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-    let days_fr = ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."];
-    let months_en = [
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-    ];
-    let months_fr = [
-        "janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.",
-        "déc.",
-    ];
-    let wd = start.weekday().num_days_from_monday() as usize;
-    let mo = start.month0() as usize;
-    let hm = |t: chrono::DateTime<Local>| format!("{:02}:{:02}", t.hour(), t.minute());
-    let mut s = if fr {
-        format!(
-            "{} {} {}, {}",
-            days_fr[wd],
-            start.day(),
-            months_fr[mo],
-            hm(start)
-        )
-    } else {
-        format!(
-            "{} {} {}, {}",
-            days_en[wd],
-            start.day(),
-            months_en[mo],
-            hm(start)
-        )
-    };
+    let mut s = t_date(start, DateStyle::Event);
     if let Some(end) = ev.end.and_then(at) {
         s.push_str(t("events-text-2"));
-        s.push_str(&hm(end));
+        s.push_str(&t_date(end, DateStyle::Time));
     }
     s
 }

@@ -1,13 +1,12 @@
 //! Sessions: what each play session showed, and a closer look at one.
 
-use std::sync::OnceLock;
-
+use chrono::{Local, TimeZone};
 use freya::prelude::*;
 use unilux_patches::community::{Crash, DipCause, HITCH_MS};
 use unilux_patches::timeline::Timeline;
 use unilux_service::SavedReport;
 
-use crate::i18n::{Lang, current, recipe_title, t, t_with};
+use crate::i18n::{DateStyle, recipe_title, t, t_date, t_with};
 use crate::state::Ui;
 use crate::svc;
 use crate::theme::{RADIUS_CONTROL, Rgb, T, alpha, size, space};
@@ -43,55 +42,13 @@ fn clock(s: f32) -> String {
     format!("{}:{:02}", s / 60, s % 60)
 }
 
-fn utc_offset_s() -> i64 {
-    static OFF: OnceLock<i64> = OnceLock::new();
-    *OFF.get_or_init(|| {
-        std::process::Command::new("date")
-            .arg("+%z")
-            .output()
-            .ok()
-            .and_then(|o| String::from_utf8(o.stdout).ok())
-            .and_then(|s| {
-                let s = s.trim();
-                if s.len() != 5 {
-                    return None;
-                }
-                let sign = if s.starts_with('-') { -1 } else { 1 };
-                let h: i64 = s[1..3].parse().ok()?;
-                let m: i64 = s[3..5].parse().ok()?;
-                Some(sign * (h * 3600 + m * 60))
-            })
-            .unwrap_or(0)
-    })
-}
-
-/// Local date and time: "11 nov. 2026, 13:13".
+/// Local date and time, e.g. "Nov 11, 2026, 13:13".
 pub(crate) fn when(secs: u64) -> String {
-    let local = secs as i64 + utc_offset_s();
-    let days = local.div_euclid(86400);
-    let rem = local.rem_euclid(86400);
-    let (h, m) = (rem / 3600, (rem % 3600) / 60);
-    // Civil date from days since 1970 (Howard Hinnant's algorithm).
-    let z = days + 719_468;
-    let era = z.div_euclid(146_097);
-    let doe = z - era * 146_097;
-    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = doy - (153 * mp + 2) / 5 + 1;
-    let mo = if mp < 10 { mp + 3 } else { mp - 9 };
-    let y = yoe + era * 400 + i64::from(mo <= 2);
-    const FR: [&str; 12] = [
-        "janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.",
-        "déc.",
-    ];
-    const EN: [&str; 12] = [
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-    ];
-    match current() {
-        Lang::Fr => format!("{d} {} {y}, {h:02}:{m:02}", FR[(mo - 1) as usize]),
-        Lang::En => format!("{} {d}, {y}, {h:02}:{m:02}", EN[(mo - 1) as usize]),
-    }
+    Local
+        .timestamp_opt(secs as i64, 0)
+        .single()
+        .map(|at| t_date(at, DateStyle::Full))
+        .unwrap_or_default()
 }
 
 fn worlds(n: u32) -> String {
