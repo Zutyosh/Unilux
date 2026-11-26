@@ -341,6 +341,7 @@ mod tests {
 
         // VR and Diagnostics.
         for (section, name, wait) in [
+            (state::Section::General, "general", 800),
             (state::Section::Vr, "vr", 800),
             (state::Section::Diagnostics, "diagnostics", 4000),
             (state::Section::Agents, "agents", 800),

@@ -338,6 +338,11 @@ const TABLE: &[(&str, &str, &str)] = &[
     ("step.patches", "Wine patches", "Correctifs Wine"),
     ("step.prefix", "Wine prefix", "Préfixe Wine"),
     (
+        "step.move_prefix",
+        "Moving the Wine prefix",
+        "Déplacement du préfixe Wine",
+    ),
+    (
         "step.somnium_installer",
         "Somnium's installer",
         "Installeur de Somnium",
@@ -946,6 +951,20 @@ const TABLE: &[(&str, &str, &str)] = &[
         "Retarder le lancement jusqu'à ce que la VR soit prête plutôt que de démarrer en mode bureau.",
     ),
     ("prefs.prefix", "Wine prefix", "Préfixe Wine"),
+    ("prefs.prefix.move", "Move", "Déplacer"),
+    ("prefs.prefix.moving", "Moving…", "Déplacement…"),
+    (
+        "prefs.prefix.pick",
+        "Where should the Wine prefix live?",
+        "Où placer le préfixe Wine ?",
+    ),
+    (
+        "prefs.prefix.moved",
+        "Wine prefix moved to",
+        "Préfixe Wine déplacé vers",
+    ),
+    ("wiz.source.location", "Install location", "Emplacement"),
+    ("wiz.source.change", "Change", "Modifier"),
     (
         "prefs.repair",
         "Repair installation",
