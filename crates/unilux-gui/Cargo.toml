@@ -27,5 +27,6 @@ fluent-bundle = "0.16.0"
 unic-langid = "0.9.6"
 
 [dev-dependencies]
+fluent-syntax = "0.12"
 freya-testing = "=0.5.1"
 tempfile.workspace = true

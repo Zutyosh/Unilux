@@ -5211,6 +5211,7 @@ version = "0.3.2"
 dependencies = [
  "chrono",
  "fluent-bundle",
+ "fluent-syntax",
  "freya",
  "freya-testing",
  "rfd",
