@@ -257,6 +257,31 @@ pub fn percent(done: u64, total: Option<u64>) -> Option<f32> {
         .map(|t| (done as f32 * 100. / t as f32).clamp(0., 100.))
 }
 
+/// A slim bar with its percentage beside it: the 6px track is too thin to
+/// hold the label freya draws inside the fill.
+pub fn progress_bar(pct: f32) -> Rect {
+    let pct = pct.clamp(0., 100.);
+    rect()
+        .width(Size::fill())
+        .horizontal()
+        .content(Content::Flex)
+        .cross_align(Alignment::Center)
+        .spacing(space::M)
+        .child(
+            rect().width(Size::flex(1.)).child(
+                ProgressBar::new(pct)
+                    .show_progress(false)
+                    .width(Size::fill()),
+            ),
+        )
+        .child(
+            muted(format!("{:.0}%", pct.floor()))
+                .width(Size::px(40.))
+                .text_align(TextAlign::End)
+                .max_lines(1),
+        )
+}
+
 /// A verdict strip: a tone, a headline, one sentence and an optional action.
 /// A verdict strip: a tone, a headline, one sentence and an optional action.
 /// The tone lives in a dot; the surface stays neutral like every other group.
