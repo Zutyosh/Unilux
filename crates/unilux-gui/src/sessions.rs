@@ -7,7 +7,7 @@ use unilux_patches::community::{Crash, DipCause, HITCH_MS};
 use unilux_patches::timeline::Timeline;
 use unilux_service::SavedReport;
 
-use crate::i18n::{Lang, current, fill, recipe_title, t};
+use crate::i18n::{Lang, current, recipe_title, t, t_with};
 use crate::state::Ui;
 use crate::svc;
 use crate::theme::{RADIUS_CONTROL, Rgb, T, alpha, size, space};
@@ -398,8 +398,8 @@ impl Component for SessionsTab {
                     worlds(r.worlds)
                 );
                 let line2 = match r.perf {
-                    Some(p) => fill(
-                        t("ses.avg_line"),
+                    Some(p) => t_with(
+                        "ses.avg_line",
                         &[format!("{:.0}", p.avg_fps), format!("{:.0}", p.low1_fps)],
                     ),
                     None => t("ses.no_perf").to_string(),
@@ -682,8 +682,8 @@ impl Component for SessionDetail {
                     ],
                     marks,
                     move |i| {
-                        fill(
-                            t("ses.read.fps"),
+                        t_with(
+                            "ses.read.fps",
                             &[
                                 clock(step * i as f32),
                                 format!("{:.0}", pts[i].fps),
@@ -719,8 +719,8 @@ impl Component for SessionDetail {
                         ],
                         vec![],
                         move |i| {
-                            fill(
-                                t("ses.read.load"),
+                            t_with(
+                                "ses.read.load",
                                 &[
                                     clock(step * i as f32),
                                     format!("{:.0}", pts2[i].gpu),
@@ -742,7 +742,7 @@ impl Component for SessionDetail {
                     banner(
                         Tone::Warn,
                         t("ses.partial"),
-                        fill(t("ses.partial.sub"), &[seen, dur(r.duration_s)]),
+                        t_with("ses.partial.sub", &[seen, dur(r.duration_s)]),
                         None,
                     )
                 });
@@ -771,8 +771,8 @@ impl Component for SessionDetail {
             if let Some(d) = p.dips {
                 slow.push(row(
                     t("ses.dips"),
-                    Some(fill(
-                        t("ses.dips.sub"),
+                    Some(t_with(
+                        "ses.dips.sub",
                         &[
                             d.episodes.to_string(),
                             format!("{:.0}", d.seconds),
@@ -790,16 +790,16 @@ impl Component for SessionDetail {
                 let mut sub = cause.to_string();
                 if let Some([normal, dip]) = d.gpu_load {
                     sub.push('\n');
-                    sub.push_str(&fill(
-                        t("ses.dips.gpu"),
+                    sub.push_str(&t_with(
+                        "ses.dips.gpu",
                         &[format!("{normal:.0}"), format!("{dip:.0}")],
                     ));
                 }
                 slow.push(row(t("ses.cause"), Some(sub), None));
             }
             if let Some(h) = p.hitches {
-                let mut sub = fill(
-                    t("ses.hitch.sub"),
+                let mut sub = t_with(
+                    "ses.hitch.sub",
                     &[
                         h.count.to_string(),
                         format!("{HITCH_MS:.0}"),
@@ -808,20 +808,20 @@ impl Component for SessionDetail {
                 );
                 if let Some(period) = h.period_s {
                     sub.push('\n');
-                    sub.push_str(&fill(t("ses.hitch.period"), &[format!("{period:.0}")]));
+                    sub.push_str(&t_with("ses.hitch.period", &[format!("{period:.0}")]));
                 }
                 slow.push(row(t("ses.hitch"), Some(sub), None));
             }
             if p.frames > 0 {
                 slow.push(row(
                     t("ses.stutter"),
-                    Some(fill(t("ses.stutter.sub"), &[p.stutters.to_string()])),
+                    Some(t_with("ses.stutter.sub", &[p.stutters.to_string()])),
                     None,
                 ));
                 slow.push(row(
                     t("ses.p99"),
-                    Some(fill(
-                        t("ses.p99.sub"),
+                    Some(t_with(
+                        "ses.p99.sub",
                         &[format!("{:.1}", p.p99_frametime_ms)],
                     )),
                     None,
@@ -869,7 +869,7 @@ impl Component for SessionDetail {
             row(t("ses.hw.cpu"), Some(hw.cpu.clone()), None),
             row(
                 t("ses.hw.ram"),
-                Some(fill(t("ses.hw.ram.v"), &[hw.ram_gb.to_string()])),
+                Some(t_with("ses.hw.ram.v", &[hw.ram_gb.to_string()])),
                 None,
             ),
             row(t("ses.hw.os"), Some(hw.distro.clone()), None),
