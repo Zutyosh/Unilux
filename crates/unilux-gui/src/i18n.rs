@@ -14,6 +14,7 @@ use std::{
 use unic_langid::LanguageIdentifier;
 
 #[derive(Clone, Copy, PartialEq)]
+#[deprecated(note = "Use LANGS keys instead")]
 pub enum Lang {
     En,
     Fr,
@@ -183,6 +184,7 @@ pub fn step(id: &str) -> String {
     }
 }
 
+#[deprecated(note = "Use fluent instead")]
 const TABLE: &[(&str, &str, &str)] = &[
     ("update.available", "Update", "Mise à jour"),
     ("update.install", "Install", "Installer"),
