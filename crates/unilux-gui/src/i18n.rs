@@ -126,24 +126,6 @@ pub fn t_with(key: &str, args: &[String]) -> String {
         .into_owned()
 }
 
-#[deprecated(note = "Add text to localisation files and use t() instead")]
-/// A string used in one place: English and French side by side.
-pub fn tr(en: &'static str, fr: &'static str) -> &'static str {
-    match current() {
-        Lang::En => en,
-        Lang::Fr => fr,
-    }
-}
-
-/// "{}" slots filled in order.
-pub fn fill(template: &str, args: &[String]) -> String {
-    let mut out = template.to_string();
-    for a in args {
-        out = out.replacen("{}", a, 1);
-    }
-    out
-}
-
 #[deprecated(note = "Obselete use fluent() instead")]
 /// A string that may be absent: the caller falls back to something else.
 pub fn lookup(key: &str) -> Option<&'static str> {
