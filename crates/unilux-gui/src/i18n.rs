@@ -115,6 +115,15 @@ fn format(key: &str, args: Option<&FluentArgs>) -> Option<Cow<'static, str>> {
     Some(bundle.format_pattern(pattern, args, &mut errors))
 }
 
+/// A message with named values, or None when the key does not exist.
+pub fn t_named(key: &str, values: &[(&str, String)]) -> Option<String> {
+    let mut args = FluentArgs::new();
+    for (name, value) in values {
+        args.set(*name, value.clone());
+    }
+    format(key, Some(&args)).map(Cow::into_owned)
+}
+
 /// Which parts of a date `t_date` shows.
 #[derive(Clone, Copy)]
 pub enum DateStyle {
@@ -227,6 +236,18 @@ mod tests {
             }
         }
         keys
+    }
+
+    #[test]
+    fn every_finding_has_a_title() {
+        let template = keys("lang.ftl.template", &parse_template());
+        for id in unilux_diag::FINDING_IDS {
+            let key = format!("finding-{id}-title");
+            assert!(
+                template.contains(&key),
+                "lang.ftl.template is missing {key}"
+            );
+        }
     }
 
     #[test]
