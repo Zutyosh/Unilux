@@ -5,7 +5,7 @@ use chrono::{Datelike, Local, TimeZone, Timelike};
 use freya::prelude::*;
 use unilux_service::{Account, LoginStep, TwoFactor, TwoFactorMethod, UpcomingEvent};
 
-use crate::i18n::{Lang, current, fill, tr};
+use crate::i18n::{Lang, current, t, t_with};
 use crate::state::{Screen, Section, Ui};
 use crate::svc;
 use crate::theme::{RADIUS_CONTROL, RADIUS_PILL, T, alpha, glass, size, space};
@@ -31,10 +31,7 @@ pub fn online_badge(ui: Ui) -> Option<Element> {
             }))
             .child(
                 label()
-                    .text(fill(
-                        tr("{} online", "{} en ligne"),
-                        &[o.current.to_string()],
-                    ))
+                    .text(t_with("events-online", &[o.current.to_string()]))
                     .font_size(size::SMALL)
                     .font_weight(FontWeight::MEDIUM)
                     .color(T.text),
@@ -51,11 +48,8 @@ pub fn events_panel(mut ui: Ui) -> Element {
             .width(Size::px(CARD_W))
             .spacing(space::S)
             .padding(space::XL)
-            .child(title(tr("Somnium events", "Événements Somnium")).font_size(size::LEAD))
-            .child(muted(tr(
-                "Sign in with your Somnium Space account to see what is on next.",
-                "Connectez votre compte Somnium Space pour voir les prochains événements.",
-            )))
+            .child(title(t("events-somnium-events")).font_size(size::LEAD))
+            .child(muted(t("events-sign-somnium-space-account")))
             .child(
                 rect().padding((space::S, 0., 0., 0.)).child(
                     Button::new()
@@ -64,7 +58,7 @@ pub fn events_panel(mut ui: Ui) -> Element {
                             ui.section.set(Section::General);
                             ui.screen.set(Screen::Settings)
                         })
-                        .child(tr("Sign in", "Se connecter")),
+                        .child(t("events-sign")),
                 ),
             )
             .into_element();
@@ -74,10 +68,7 @@ pub fn events_panel(mut ui: Ui) -> Element {
         return glass_panel()
             .width(Size::px(CARD_W))
             .padding(space::XL)
-            .child(muted(tr(
-                "No event planned for now.",
-                "Aucun événement prévu pour l'instant.",
-            )))
+            .child(muted(t("events-no-event-planned-now")))
             .into_element();
     };
     glass_panel()
@@ -165,7 +156,7 @@ fn later(ev: &UpcomingEvent) -> Rect {
 fn countdown(ev: &UpcomingEvent, next: bool) -> Rect {
     let now = Local::now().timestamp().max(0) as u64;
     let (text, tone) = if ev.start <= now {
-        (tr("On now", "En cours").to_string(), Tone::Ok)
+        (t("events-now").to_string(), Tone::Ok)
     } else {
         let s = ev.start - now;
         let (d, h, m) = (s / 86400, s % 86400 / 3600, s % 3600 / 60);
@@ -176,7 +167,7 @@ fn countdown(ev: &UpcomingEvent, next: bool) -> Rect {
             (d, Lang::En) => format!("{d} d {h} h"),
         };
         (
-            fill(tr("in {}", "dans {}"), &[t]),
+            t_with("events-text", &[t]),
             if next { Tone::Accent } else { Tone::Neutral },
         )
     };
@@ -230,7 +221,7 @@ fn when(ev: &UpcomingEvent) -> String {
         )
     };
     if let Some(end) = ev.end.and_then(at) {
-        s.push_str(tr(" to ", " à "));
+        s.push_str(t("events-text-2"));
         s.push_str(&hm(end));
     }
     s
@@ -243,13 +234,10 @@ fn meta(ev: &UpcomingEvent) -> Option<String> {
         parts.push(l.clone());
     }
     if let Some(c) = &ev.creator {
-        parts.push(fill(
-            tr("hosted by {}", "organisé par {}"),
-            std::slice::from_ref(c),
-        ));
+        parts.push(t_with("events-hosted", std::slice::from_ref(c)));
     }
     if let Some(n) = ev.attendees.filter(|n| *n > 0) {
-        parts.push(fill(tr("{} going", "{} inscrits"), &[n.to_string()]));
+        parts.push(t_with("events-going", &[n.to_string()]));
     }
     (!parts.is_empty()).then(|| parts.join(", "))
 }
@@ -368,10 +356,7 @@ impl Component for AccountForm {
                         .width(Size::flex(1.))
                         .spacing(2.)
                         .child(body(a.name))
-                        .child(muted(tr(
-                            "Signed in. Unilux keeps only the session, readable by you alone.",
-                            "Connecté. Unilux ne garde que la session, lisible par vous seul.",
-                        ))),
+                        .child(muted(t("events-signed-unilux-keeps-only"))),
                 )
                 .child(
                     Button::new()
@@ -383,7 +368,7 @@ impl Component for AccountForm {
                             }
                             Err(e) => ui.error.set(Some(e.to_string())),
                         })
-                        .child(tr("Sign out", "Se déconnecter")),
+                        .child(t("events-sign-out")),
                 )
                 .into_element();
         }
@@ -392,51 +377,29 @@ impl Component for AccountForm {
         if let Some(c) = challenge.read().clone() {
             let m = *method.read();
             let hint = match m {
-                TwoFactorMethod::Authenticator => tr(
-                    "Enter the 6-digit code from your authenticator app.",
-                    "Saisissez le code à 6 chiffres de votre application d'authentification.",
-                )
-                .to_string(),
+                TwoFactorMethod::Authenticator => t("events-enter-6-digit-code").to_string(),
                 TwoFactorMethod::Sms => match (&c.phone, *sms_sent.read()) {
-                    (Some(p), true) => fill(
-                        tr("Code sent to {}.", "Code envoyé au {}."),
-                        std::slice::from_ref(p),
-                    ),
-                    (_, true) => tr("Code sent by SMS.", "Code envoyé par SMS.").to_string(),
-                    (Some(p), false) => fill(
-                        tr("Get a code by SMS at {}.", "Recevez un code par SMS au {}."),
-                        std::slice::from_ref(p),
-                    ),
-                    (None, false) => {
-                        tr("Get a code by SMS.", "Recevez un code par SMS.").to_string()
-                    }
+                    (Some(p), true) => t_with("events-code-sent", std::slice::from_ref(p)),
+                    (_, true) => t("events-code-sent-sms").to_string(),
+                    (Some(p), false) => t_with("events-get-code-sms", std::slice::from_ref(p)),
+                    (None, false) => t("events-get-code-sms-2").to_string(),
                 },
-                TwoFactorMethod::BackupCode => tr(
-                    "Enter one of the backup codes Somnium gave you.",
-                    "Saisissez l'un des codes de secours fournis par Somnium.",
-                )
-                .to_string(),
+                TwoFactorMethod::BackupCode => t("events-enter-one-backup-codes").to_string(),
             };
             let mut options = Vec::new();
             if c.authenticator {
-                options.push((TwoFactorMethod::Authenticator, tr("App", "Application")));
+                options.push((TwoFactorMethod::Authenticator, t("events-app")));
             }
             if c.sms {
                 options.push((TwoFactorMethod::Sms, "SMS"));
             }
-            options.push((
-                TwoFactorMethod::BackupCode,
-                tr("Backup code", "Code de secours"),
-            ));
+            options.push((TwoFactorMethod::BackupCode, t("events-backup-code")));
             let ready = !code.read().trim().is_empty() && !is_busy;
             return rect()
                 .width(Size::fill())
                 .spacing(space::S)
                 .padding((space::M, space::L))
-                .child(
-                    body(tr("Verification code", "Code de vérification"))
-                        .font_weight(FontWeight::SEMI_BOLD),
-                )
+                .child(body(t("events-verification-code")).font_weight(FontWeight::SEMI_BOLD))
                 .child(
                     rect().horizontal().spacing(space::XS).children(
                         options
@@ -463,14 +426,14 @@ impl Component for AccountForm {
                         .enabled(!is_busy)
                         .on_press(move |_| send_sms())
                         .child(if *sms_sent.read() {
-                            tr("Send again", "Renvoyer")
+                            t("events-send-again")
                         } else {
-                            tr("Send the SMS", "Envoyer le SMS")
+                            t("events-send-sms")
                         })
                 }))
                 .child(
                     Input::new(code)
-                        .placeholder(tr("Code", "Code"))
+                        .placeholder(t("events-code"))
                         .auto_focus(true)
                         .width(Size::fill())
                         .on_submit(move |_| verify()),
@@ -485,16 +448,16 @@ impl Component for AccountForm {
                         .padding((space::XS, 0., 0., 0.))
                         .child(
                             pill(if is_busy {
-                                tr("Checking", "Vérification")
+                                t("events-checking")
                             } else {
-                                tr("Confirm", "Valider")
+                                t("events-confirm")
                             })
                             .corner_radius(RADIUS_PILL)
                             .padding((10., 28.))
                             .enabled(ready)
                             .on_press(move |_| verify()),
                         )
-                        .child(link(tr("Cancel", "Annuler")).on_press(move |_| {
+                        .child(link(t("events-cancel")).on_press(move |_| {
                             challenge.set(None);
                             code.set(String::new());
                             error.set(None)
@@ -514,8 +477,8 @@ impl Component for AccountForm {
             .width(Size::fill())
             .spacing(space::S)
             .padding((space::M, space::L))
-            .child(field(login, tr("E-mail or user name", "E-mail ou nom d'utilisateur"), false))
-            .child(field(password, tr("Password", "Mot de passe"), true))
+            .child(field(login, t("events-e-mail-user-name"), false))
+            .child(field(password, t("events-password"), true))
             .maybe_child(err)
             .child(
                 rect()
@@ -526,9 +489,9 @@ impl Component for AccountForm {
                     .padding((space::XS, 0., 0., 0.))
                     .child(
                         pill(if is_busy {
-                            tr("Signing in", "Connexion")
+                            t("events-signing")
                         } else {
-                            tr("Sign in", "Se connecter")
+                            t("events-sign")
                         })
                         .corner_radius(RADIUS_PILL)
                         .padding((10., 28.))
@@ -536,13 +499,7 @@ impl Component for AccountForm {
                         .on_press(move |_| submit()),
                     ),
             )
-            .child(
-                muted(tr(
-                    "Optional. It unlocks the events on the main screen. Your password goes to Somnium Space only and is never saved.",
-                    "Facultatif. Cela affiche les événements sur l'écran principal. Votre mot de passe n'est envoyé qu'à Somnium Space et n'est jamais enregistré.",
-                ))
-                .color(alpha(T.text, 0.6)),
-            )
+            .child(muted(t("events-optional-unlocks-events-main")).color(alpha(T.text, 0.6)))
             .corner_radius(RADIUS_CONTROL)
             .into_element()
     }

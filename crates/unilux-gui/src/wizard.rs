@@ -523,20 +523,16 @@ fn account(mut w: Wiz) -> impl IntoElement {
             .corner_radius(RADIUS_PILL)
             .padding((12., 28.))
             .on_press(move |_| w.page.set(Page::Source))
-            .child(crate::i18n::tr("Skip", "Passer"))
+            .child(crate::i18n::t("wiz-skip"))
             .into_element()
     };
     rect()
         .width(Size::fill())
         .cross_align(Alignment::Center)
         .spacing(space::L)
-        .child(centered(title(crate::i18n::tr(
-            "Your Somnium Space account",
-            "Votre compte Somnium Space",
-        ))))
-        .child(centered(lead(crate::i18n::tr(
-            "Sign in to see upcoming events on the main screen. You can do it later in Settings.",
-            "Connectez-vous pour voir les prochains événements sur l'écran principal. Vous pourrez le faire plus tard dans les Réglages.",
+        .child(centered(title(crate::i18n::t("wiz-somnium-space-account"))))
+        .child(centered(lead(crate::i18n::t(
+            "wiz-sign-see-upcoming-events",
         ))))
         .child(crate::events::AccountForm(w.ui))
         .child(actions(vec![

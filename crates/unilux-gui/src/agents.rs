@@ -5,7 +5,7 @@ use std::time::Duration;
 use freya::prelude::*;
 use unilux_agent::ToolInfo;
 
-use crate::i18n::{fill, tr};
+use crate::i18n::{t, t_with};
 use crate::state::Ui;
 use crate::svc;
 use crate::theme::{T, size, space};
@@ -22,241 +22,62 @@ impl Component for AgentsSection {
 }
 
 /// Tool, category, what it does in English and in French.
-const TOOLS: &[(&str, usize, &str, &str)] = &[
-    (
-        "status",
-        0,
-        "Install state and what is running",
-        "État de l'installation et de ce qui tourne",
-    ),
-    (
-        "system",
-        0,
-        "Your machine: distribution, GPU, drivers",
-        "Votre machine : distribution, GPU, pilotes",
-    ),
-    (
-        "list_processes",
-        0,
-        "Processes of the game",
-        "Processus du jeu",
-    ),
-    (
-        "tail_logs",
-        0,
-        "Recent log lines",
-        "Dernières lignes des journaux",
-    ),
-    (
-        "export_report",
-        0,
-        "Anonymous bug report",
-        "Rapport de bug anonyme",
-    ),
-    (
-        "run_doctor",
-        1,
-        "Run every check",
-        "Lancer toutes les vérifications",
-    ),
-    (
-        "list_fixes",
-        1,
-        "List the fixes Unilux can apply",
-        "Lister les corrections applicables",
-    ),
-    (
-        "apply_fix",
-        1,
-        "Apply a fix (repair, stop the game...)",
-        "Appliquer une correction (réparer, arrêter le jeu...)",
-    ),
-    ("vr_status", 2, "VR headset readiness", "État du casque VR"),
-    (
-        "proton_installed",
-        3,
-        "Installed Proton versions",
-        "Versions de Proton installées",
-    ),
-    (
-        "proton_available",
-        3,
-        "Proton versions you could install",
-        "Versions de Proton installables",
-    ),
-    (
-        "proton_use",
-        3,
-        "Switch to another Proton",
-        "Passer à un autre Proton",
-    ),
-    ("recipe_list", 4, "List recipes", "Lister les recettes"),
-    ("recipe_get", 4, "Read a recipe", "Lire une recette"),
-    (
-        "ingredient_list",
-        4,
-        "Fixes a recipe can use",
-        "Correctifs utilisables dans une recette",
-    ),
-    (
-        "recipe_check",
-        4,
-        "Validate a recipe without saving it",
-        "Valider une recette sans l'enregistrer",
-    ),
-    (
-        "recipe_save",
-        4,
-        "Create or replace a recipe",
-        "Créer ou remplacer une recette",
-    ),
-    (
-        "recipe_build",
-        4,
-        "Build a recipe",
-        "Construire une recette",
-    ),
-    (
-        "recipe_use",
-        4,
-        "Make the game use a recipe",
-        "Faire utiliser une recette au jeu",
-    ),
-    (
-        "session_list",
-        5,
-        "Your game sessions",
-        "Vos sessions de jeu",
-    ),
-    (
-        "recipe_verdict",
-        5,
-        "How a recipe does on your sessions",
-        "Comment une recette se comporte sur vos sessions",
-    ),
-    (
-        "recipe_share",
-        5,
-        "Prepare a community submission, sends nothing",
-        "Préparer un partage communautaire, n'envoie rien",
-    ),
-    (
-        "community_list",
-        5,
-        "Community recipes",
-        "Recettes de la communauté",
-    ),
-    (
-        "community_install",
-        5,
-        "Add a community recipe to yours",
-        "Ajouter une recette de la communauté aux vôtres",
-    ),
-    (
-        "patch_status",
-        6,
-        "Patches in the current Proton",
-        "Correctifs du Proton actuel",
-    ),
-    (
-        "patch_list",
-        6,
-        "List every patch",
-        "Lister tous les correctifs",
-    ),
-    ("patch_read", 6, "Read one patch", "Lire un correctif"),
-    (
-        "patch_plan",
-        6,
-        "Preview a build, runs nothing",
-        "Prévoir une compilation, ne lance rien",
-    ),
-    (
-        "patch_build",
-        6,
-        "Compile the patches (long)",
-        "Compiler les correctifs (long)",
-    ),
-    (
-        "patch_apply",
-        6,
-        "Install a compiled bundle",
-        "Installer un paquet compilé",
-    ),
-    ("launch", 7, "Start the game", "Lancer le jeu"),
-    ("stop", 7, "Stop the game", "Arrêter le jeu"),
-    (
-        "update_check",
-        7,
-        "Look for a new Unilux",
-        "Chercher une nouvelle version d'Unilux",
-    ),
-    (
-        "update_apply",
-        7,
-        "Install the new Unilux",
-        "Installer la nouvelle version d'Unilux",
-    ),
+const TOOLS: &[(&str, usize)] = &[
+    ("status", 0),
+    ("system", 0),
+    ("list_processes", 0),
+    ("tail_logs", 0),
+    ("export_report", 0),
+    ("run_doctor", 1),
+    ("list_fixes", 1),
+    ("apply_fix", 1),
+    ("vr_status", 2),
+    ("proton_installed", 3),
+    ("proton_available", 3),
+    ("proton_use", 3),
+    ("recipe_list", 4),
+    ("recipe_get", 4),
+    ("ingredient_list", 4),
+    ("recipe_check", 4),
+    ("recipe_save", 4),
+    ("recipe_build", 4),
+    ("recipe_use", 4),
+    ("session_list", 5),
+    ("recipe_verdict", 5),
+    ("recipe_share", 5),
+    ("community_list", 5),
+    ("community_install", 5),
+    ("patch_status", 6),
+    ("patch_list", 6),
+    ("patch_read", 6),
+    ("patch_plan", 6),
+    ("patch_build", 6),
+    ("patch_apply", 6),
+    ("launch", 7),
+    ("stop", 7),
+    ("update_check", 7),
+    ("update_apply", 7),
 ];
 
 fn category(i: usize) -> (&'static str, &'static str) {
     match i {
-        0 => (
-            tr("State and logs", "État et journaux"),
-            tr(
-                "Read how Unilux, the game and your machine are doing.",
-                "Lire comment vont Unilux, le jeu et votre machine.",
-            ),
-        ),
+        0 => (t("agents-state-logs"), t("agents-read-how-unilux-game")),
         1 => (
-            tr("Checks and fixes", "Vérifications et corrections"),
-            tr(
-                "Run the diagnostics and apply the fixes Unilux offers.",
-                "Lancer le diagnostic et appliquer les corrections proposées par Unilux.",
-            ),
+            t("agents-checks-fixes"),
+            t("agents-run-diagnostics-apply-fixes"),
         ),
-        2 => (
-            tr("VR headset", "Casque VR"),
-            tr(
-                "Check that the headset is ready for the game.",
-                "Vérifier que le casque est prêt pour le jeu.",
-            ),
-        ),
-        3 => (
-            tr("Proton", "Proton"),
-            tr(
-                "See the Proton versions and switch to another one.",
-                "Voir les versions de Proton et passer à une autre.",
-            ),
-        ),
-        4 => (
-            tr("Recipes", "Recettes"),
-            tr(
-                "Read, write, build and use compatibility recipes.",
-                "Lire, écrire, construire et utiliser des recettes de compatibilité.",
-            ),
-        ),
+        2 => (t("agents-vr-headset"), t("agents-check-headset-ready-game")),
+        3 => (t("agents-proton"), t("agents-see-proton-versions-switch")),
+        4 => (t("agents-recipes"), t("agents-read-write-build-use")),
         5 => (
-            tr("Sessions and community", "Sessions et communauté"),
-            tr(
-                "Read your game sessions and the community's recipes.",
-                "Lire vos sessions de jeu et les recettes de la communauté.",
-            ),
+            t("agents-sessions-community"),
+            t("agents-read-game-sessions-community"),
         ),
         6 => (
-            tr("Wine patches", "Correctifs Wine"),
-            tr(
-                "Inspect, compile and install the patches.",
-                "Examiner, compiler et installer les correctifs.",
-            ),
+            t("agents-wine-patches"),
+            t("agents-inspect-compile-install-patches"),
         ),
-        _ => (
-            tr("Game and updates", "Jeu et mises à jour"),
-            tr(
-                "Start or stop the game, update Unilux.",
-                "Lancer ou arrêter le jeu, mettre Unilux à jour.",
-            ),
-        ),
+        _ => (t("agents-game-updates"), t("agents-start-stop-game-update")),
     }
 }
 
@@ -264,7 +85,7 @@ fn label_of(name: &str) -> String {
     TOOLS
         .iter()
         .find(|(n, ..)| *n == name)
-        .map(|(_, _, en, fr)| tr(en, fr).to_string())
+        .map(|(n, _)| t(&format!("agents-tool-{n}")).to_string())
         .unwrap_or_else(|| name.to_string())
 }
 
@@ -275,13 +96,10 @@ fn ago(secs: u64) -> String {
         .unwrap_or_default();
     let d = now.saturating_sub(secs);
     match d {
-        0..=59 => tr("just now", "à l'instant").to_string(),
-        60..=3599 => fill(tr("{} min ago", "il y a {} min"), &[(d / 60).to_string()]),
-        3600..=86_399 => fill(tr("{} h ago", "il y a {} h"), &[(d / 3600).to_string()]),
-        _ => fill(
-            tr("{} days ago", "il y a {} j"),
-            &[(d / 86_400).to_string()],
-        ),
+        0..=59 => t("agents-just-now").to_string(),
+        60..=3599 => t_with("agents-min-ago", &[(d / 60).to_string()]),
+        3600..=86_399 => t_with("agents-h-ago", &[(d / 3600).to_string()]),
+        _ => t_with("agents-days-ago", &[(d / 86_400).to_string()]),
     }
 }
 
@@ -321,14 +139,11 @@ fn calls() -> Vec<Call> {
 
 fn access_chip(t: &ToolInfo) -> Rect {
     if t.read_only {
-        chip(tr("Read only", "Lecture seule"), Tone::Ok)
+        chip(crate::i18n::t("agents-read-only"), Tone::Ok)
     } else if t.needs_approval {
-        chip(
-            tr("Needs your approval", "Demande votre accord"),
-            Tone::Warn,
-        )
+        chip(crate::i18n::t("agents-needs-approval"), Tone::Warn)
     } else {
-        chip(tr("Acts on its own", "Agit seul"), Tone::Accent)
+        chip(crate::i18n::t("agents-acts-own"), Tone::Accent)
     }
 }
 
@@ -391,43 +206,23 @@ fn view(ui: Ui) -> impl IntoElement {
         banner(
             Tone::Warn,
             if pending.len() == 1 {
-                tr(
-                    "An agent is waiting for your answer",
-                    "Un agent attend votre réponse",
-                )
-                .to_string()
+                t("agents-agent-waiting-answer").to_string()
             } else {
-                fill(
-                    tr(
-                        "{} requests are waiting for your answer",
-                        "{} demandes attendent votre réponse",
-                    ),
+                t_with(
+                    "agents-requests-waiting-answer",
                     &[pending.len().to_string()],
                 )
             },
-            tr(
-                "It does nothing until you decide. A request left alone for 2 minutes is refused.",
-                "Il ne fait rien tant que vous n'avez pas décidé. Une demande sans réponse pendant 2 minutes est refusée.",
-            ),
+            t("agents-does-nothing-until-decide"),
             None,
         )
     } else {
         banner(
             Tone::Neutral,
-            tr("Ready for an agent", "Prêt pour un agent"),
+            t("agents-ready-agent"),
             match last {
-                Some(at) => fill(
-                    tr(
-                        "Last call {}. Nothing that changes your setup runs without your approval here.",
-                        "Dernier appel {}. Rien qui modifie votre installation ne s'exécute sans votre accord ici.",
-                    ),
-                    &[ago(at)],
-                ),
-                None => tr(
-                    "No agent has connected yet. Nothing that changes your setup runs without your approval here.",
-                    "Aucun agent ne s'est encore connecté. Rien qui modifie votre installation ne s'exécute sans votre accord ici.",
-                )
-                .to_string(),
+                Some(at) => t_with("agents-last-call-nothing-changes", &[ago(at)]),
+                None => t("agents-no-agent-has-connected").to_string(),
             },
             None,
         )
@@ -440,7 +235,7 @@ fn view(ui: Ui) -> impl IntoElement {
                 let id = *id;
                 row(
                     msg.clone(),
-                    Some(tr("Requested by an agent", "Demandé par un agent").to_string()),
+                    Some(t("agents-requested-agent").to_string()),
                     Some(
                         rect()
                             .horizontal()
@@ -449,12 +244,12 @@ fn view(ui: Ui) -> impl IntoElement {
                                 Button::new()
                                     .filled()
                                     .on_press(move |_| approvals::answer(id, true))
-                                    .child(tr("Allow", "Autoriser")),
+                                    .child(t("agents-allow")),
                             )
                             .child(
                                 Button::new()
                                     .on_press(move |_| approvals::answer(id, false))
-                                    .child(tr("Refuse", "Refuser")),
+                                    .child(t("agents-refuse")),
                             )
                             .into_element(),
                     ),
@@ -466,34 +261,22 @@ fn view(ui: Ui) -> impl IntoElement {
     let connect = divided(vec![
         step(
             1,
-            tr("Claude Code", "Claude Code"),
-            tr(
-                "Run this once in a terminal.",
-                "À lancer une fois dans un terminal.",
-            ),
+            t("agents-claude-code"),
+            t("agents-run-once-terminal"),
             Some("claude mcp add unilux -- unilux mcp"),
         ),
         step(
             2,
-            tr(
-                "Another agent (Cursor, Zed, and so on)",
-                "Un autre agent (Cursor, Zed, etc.)",
-            ),
-            tr(
-                "Add this server to its MCP settings.",
-                "Ajoutez ce serveur dans ses réglages MCP.",
-            ),
+            t("agents-another-agent-cursor-zed"),
+            t("agents-add-server-mcp-settings"),
             Some(
                 "{ \"mcpServers\": { \"unilux\": { \"command\": \"unilux\", \"args\": [\"mcp\"] } } }",
             ),
         ),
         step(
             3,
-            tr("Keep Unilux open", "Gardez Unilux ouvert"),
-            tr(
-                "The agent then shares this window: it sees the running game, and its requests appear above for you to allow or refuse. With Unilux closed, an agent can confirm its own actions.",
-                "L'agent partage alors cette fenêtre : il voit le jeu en cours, et ses demandes apparaissent plus haut pour que vous les autorisiez ou refusiez. Avec Unilux fermé, un agent peut confirmer lui-même ses actions.",
-            ),
+            t("agents-keep-unilux-open"),
+            t("agents-agent-then-shares-window"),
             None,
         ),
     ]);
@@ -507,7 +290,7 @@ fn view(ui: Ui) -> impl IntoElement {
                 TOOLS
                     .iter()
                     .find(|(n, ..)| *n == t.name)
-                    .map_or(c == 7, |(_, k, ..)| *k == c)
+                    .map_or(c == 7, |(_, k)| *k == c)
             })
             .collect();
         if mine.is_empty() {
@@ -518,25 +301,19 @@ fn view(ui: Ui) -> impl IntoElement {
         let mut chips = rect().horizontal().spacing(space::S);
         if reads > 0 {
             chips = chips.child(chip(
-                fill(tr("{} read only", "{} en lecture"), &[reads.to_string()]),
+                t_with("agents-read-only-2", &[reads.to_string()]),
                 Tone::Ok,
             ));
         }
         if asks_n > 0 {
             chips = chips.child(chip(
-                fill(
-                    tr("{} with approval", "{} avec accord"),
-                    &[asks_n.to_string()],
-                ),
+                t_with("agents-approval", &[asks_n.to_string()]),
                 Tone::Warn,
             ));
         }
         let own = mine.len() - reads - asks_n;
         if own > 0 {
-            chips = chips.child(chip(
-                fill(tr("{} on its own", "{} en autonomie"), &[own.to_string()]),
-                Tone::Accent,
-            ));
+            chips = chips.child(chip(t_with("agents-own", &[own.to_string()]), Tone::Accent));
         }
         cats.push(row(
             name,
@@ -579,12 +356,9 @@ fn view(ui: Ui) -> impl IntoElement {
             open.set(!v);
         })
         .child(if *open.read() {
-            tr("Hide the details", "Masquer le détail").to_string()
+            t("agents-hide-details").to_string()
         } else {
-            fill(
-                tr("Show the {} tools", "Voir les {} outils"),
-                &[tools.len().to_string()],
-            )
+            t_with("agents-show-tools", &[tools.len().to_string()])
         })
         .into_element();
 
@@ -604,9 +378,9 @@ fn view(ui: Ui) -> impl IntoElement {
                 ),
                 Some(
                     if c.ok {
-                        chip(tr("Done", "Réussi"), Tone::Ok)
+                        chip(t("agents-done"), Tone::Ok)
                     } else {
-                        chip(tr("Failed or refused", "Échec ou refusé"), Tone::Warn)
+                        chip(t("agents-failed-refused"), Tone::Warn)
                     }
                     .into_element(),
                 ),
@@ -615,14 +389,8 @@ fn view(ui: Ui) -> impl IntoElement {
         .collect();
     let recent = if recent.is_empty() {
         vec![row(
-            tr("Nothing yet", "Rien pour l'instant"),
-            Some(
-                tr(
-                    "Every call an agent makes is listed here, with its result.",
-                    "Chaque appel d'un agent est listé ici, avec son résultat.",
-                )
-                .to_string(),
-            ),
+            t("agents-nothing-yet"),
+            Some(t("agents-every-call-agent-makes").to_string()),
             None,
         )]
     } else {
@@ -631,24 +399,25 @@ fn view(ui: Ui) -> impl IntoElement {
 
     rect()
         .spacing(space::XL)
-        .child(crate::widgets::page_header(tr("Agents", "Agents"), tr(
-            "A coding agent like Claude Code can read Unilux's logs, run checks and test fixes; changes to your setup wait for your approval.",
-            "Un agent de code comme Claude Code peut lire les journaux d'Unilux, lancer les vérifications et tester des corrections ; toute modification de votre installation attend votre accord.",
-        )))
+        .child(crate::widgets::page_header(
+            t("agents-agents"),
+            t("agents-coding-agent-like-claude"),
+        ))
         .child(verdict)
-        .maybe_child((!asks.is_empty()).then(|| group(tr("Waiting for you", "En attente de vous"), asks)))
-        .child(group(tr("Connect an agent", "Connecter un agent"), connect))
+        .maybe_child((!asks.is_empty()).then(|| group(t("agents-waiting"), asks)))
+        .child(group(t("agents-connect-agent"), connect))
         .child(
             rect()
                 .width(Size::fill())
                 .spacing(space::S)
                 .child(group(
-                    fill(
-                        tr(
-                            "What an agent can do: {} tools, {} read only, {} ask you first",
-                            "Ce qu'un agent peut faire : {} outils, {} en lecture seule, {} demandent votre accord",
-                        ),
-                        &[tools.len().to_string(), n_read.to_string(), n_ask.to_string()],
+                    t_with(
+                        "agents-what-agent-do-tools",
+                        &[
+                            tools.len().to_string(),
+                            n_read.to_string(),
+                            n_ask.to_string(),
+                        ],
                     )
                     .as_str(),
                     cats,
@@ -656,29 +425,29 @@ fn view(ui: Ui) -> impl IntoElement {
                 .child(toggle),
         )
         .child(sessions::tiles(vec![
-            sessions::tile(tr("Calls", "Appels"), total.to_string(), None),
+            sessions::tile(t("agents-calls"), total.to_string(), None),
             sessions::tile(
-                tr("Last call", "Dernier appel"),
+                t("agents-last-call"),
                 last.map_or("-".to_string(), ago),
                 None,
             ),
             sessions::tile(
-                tr("Failed or refused", "Échecs ou refus"),
+                t("agents-failed-refused-2"),
                 failed.to_string(),
                 (failed > 0).then_some(Tone::Warn),
             ),
         ]))
-        .child(group(tr("Recent activity", "Activité récente"), recent))
+        .child(group(t("agents-recent-activity"), recent))
         .child(group(
-            tr("Technical details", "Détails techniques"),
+            t("agents-technical-details"),
             divided(vec![
                 row(
-                    tr("Socket", "Socket"),
+                    t("agents-socket-2"),
                     Some(svc().paths().socket().display().to_string()),
                     None,
                 ),
                 row(
-                    tr("Activity log", "Journal d'activité"),
+                    t("agents-activity-log"),
                     Some(svc().paths().audit_log().display().to_string()),
                     None,
                 ),
