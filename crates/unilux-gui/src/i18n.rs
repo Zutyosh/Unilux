@@ -2,8 +2,8 @@
 //! visible string goes through `t`, or through `tr` when it is used in a
 //! single place and reads better next to its code.
 
-use fluent_bundle::FluentResource;
 use fluent_bundle::concurrent::FluentBundle;
+use fluent_bundle::{FluentArgs, FluentResource};
 use std::{
     borrow::Cow,
     sync::{
@@ -88,11 +88,19 @@ fn parse(key: &str) -> FluentResource {
         .unwrap_or_else(|(_, e)| panic!("{key}.ftl is invalid: {e:?}"))
 }
 
-fn fluent(key: &str) -> Option<&'static str> {
+fn fluent(key: &str, args: Option<&[String]>) -> Option<Cow<'static, str>> {
     let code = match current() {
         Lang::En => "en",
         Lang::Fr => "fr",
     };
+
+    let args = args.map(|list| {
+        let mut fluent_args = FluentArgs::new();
+        for (i, value) in list.iter().enumerate() {
+            fluent_args.set(format!("p{}", i + 1), value.clone());
+        }
+        fluent_args
+    });
 
     let (_, bundle) = bundles().iter().find(|(c, _)| *c == code)?;
 
@@ -100,12 +108,8 @@ fn fluent(key: &str) -> Option<&'static str> {
     let pattern = bundle.get_message(&id)?.value()?;
 
     let mut errors = Vec::new();
-    let text = bundle.format_pattern(pattern, None, &mut errors);
-
-    match text {
-        Cow::Borrowed(s) => Some(s),
-        Cow::Owned(_) => None,
-    }
+    let text = bundle.format_pattern(pattern, args.as_ref(), &mut errors);
+    Some(text)
 }
 
 pub fn set(l: Lang) {
@@ -114,6 +118,12 @@ pub fn set(l: Lang) {
 
 pub fn t(key: &str) -> &'static str {
     lookup(key).unwrap_or("?")
+}
+
+pub fn t_with(key: &str, args: &[String]) -> String {
+    fluent(key, Some(args))
+        .unwrap_or(Cow::Borrowed("?"))
+        .into_owned()
 }
 
 /// A string used in one place: English and French side by side.
@@ -135,17 +145,21 @@ pub fn fill(template: &str, args: &[String]) -> String {
 
 /// A string that may be absent: the caller falls back to something else.
 pub fn lookup(key: &str) -> Option<&'static str> {
-    fluent(key).or_else(|| {
-        //try to use fluent first and fallback to the table if something goes wrong
-        let lang = current();
-        TABLE
-            .iter()
-            .find(|(k, _, _)| *k == key)
-            .map(|(_, en, fr)| match lang {
-                Lang::En => *en,
-                Lang::Fr => *fr,
-            })
-    })
+    match fluent(key, None) {
+        Some(Cow::Borrowed(text)) => Some(text),
+        _ => lookup_table(key),
+    }
+}
+
+fn lookup_table(key: &str) -> Option<&'static str> {
+    let lang = current();
+    TABLE
+        .iter()
+        .find(|(k, _, _)| *k == key)
+        .map(|(_, en, fr)| match lang {
+            Lang::En => *en,
+            Lang::Fr => *fr,
+        })
 }
 
 /// A fix's name in the user's language; unknown (custom) fixes keep theirs.
