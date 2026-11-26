@@ -5,7 +5,7 @@ use unilux_core::Severity;
 use unilux_diag::checks::CHECKS;
 use unilux_diag::{Finding, FixId};
 
-use crate::i18n::{Lang, current, fill, tr};
+use crate::i18n::{Lang, current, t, t_with};
 use crate::state::{Section, Ui};
 use crate::svc;
 use crate::theme::space;
@@ -33,104 +33,26 @@ async fn run_checks(mut ui: Ui, mut running: State<bool>) {
 /// What each check looks at, in plain words.
 fn check_meta(id: &str) -> (&'static str, &'static str) {
     match id {
-        "python" => (
-            tr("Python", "Python"),
-            tr(
-                "umu-run, which starts the game, needs Python 3.10 or newer.",
-                "umu-run, qui démarre le jeu, a besoin de Python 3.10 ou plus récent.",
-            ),
-        ),
-        "gpu" => (
-            tr("Graphics card", "Carte graphique"),
-            tr(
-                "A Vulkan driver is installed. Proton draws the game with it.",
-                "Un pilote Vulkan est installé. Proton dessine le jeu avec.",
-            ),
-        ),
-        "network" => (
-            tr("Connection to GitHub", "Connexion à GitHub"),
-            tr(
-                "Installs and updates are downloaded from GitHub.",
-                "Les installations et les mises à jour se téléchargent depuis GitHub.",
-            ),
-        ),
-        "install" => (
-            tr("Installation", "Installation"),
-            tr(
-                "Somnium Space, umu-run and Proton are all there.",
-                "Somnium Space, umu-run et Proton sont tous présents.",
-            ),
-        ),
-        "patches" => (
-            tr("Wine patches", "Correctifs Wine"),
-            tr(
-                "The sign-in patches are in Proton, untouched, and fit this version.",
-                "Les correctifs de connexion sont dans Proton, intacts, et adaptés à cette version.",
-            ),
-        ),
-        "proton" => (
-            tr("Proton version", "Version de Proton"),
-            tr(
-                "Proton 9 or newer, which VR needs.",
-                "Proton 9 ou plus récent, ce dont la VR a besoin.",
-            ),
-        ),
-        "openxr" => (
-            tr("VR headset", "Casque VR"),
-            tr(
-                "A VR runtime is active and linked to the game. Details are on the VR page.",
-                "Un runtime VR est actif et relié au jeu. Le détail est dans la page VR.",
-            ),
-        ),
-        "session" => (
-            tr("Game running", "Jeu en cours"),
-            tr(
-                "Whether Somnium Space is already running.",
-                "Si Somnium Space tourne déjà.",
-            ),
-        ),
+        "python" => (t("diag-check-python-name"), t("diag-check-python-what")),
+        "gpu" => (t("diag-check-gpu-name"), t("diag-check-gpu-what")),
+        "network" => (t("diag-check-network-name"), t("diag-check-network-what")),
+        "install" => (t("diag-check-install-name"), t("diag-check-install-what")),
+        "patches" => (t("diag-check-patches-name"), t("diag-check-patches-what")),
+        "proton" => (t("diag-check-proton-name"), t("diag-check-proton-what")),
+        "openxr" => (t("diag-check-openxr-name"), t("diag-check-openxr-what")),
+        "session" => (t("diag-check-session-name"), t("diag-check-session-what")),
         "desktop_entry" => (
-            tr("Menu shortcut", "Raccourci du menu"),
-            tr(
-                "The entry in your applications menu exists.",
-                "L'entrée du menu des applications existe.",
-            ),
+            t("diag-check-desktop_entry-name"),
+            t("diag-check-desktop_entry-what"),
         ),
-        "sandbox" => (
-            tr("Environment", "Environnement"),
-            tr(
-                "Unilux is not in a sandbox that would block Proton.",
-                "Unilux n'est pas dans un bac à sable qui bloquerait Proton.",
-            ),
-        ),
+        "sandbox" => (t("diag-check-sandbox-name"), t("diag-check-sandbox-what")),
         "launch_log" => (
-            tr("Last launch", "Dernier lancement"),
-            tr(
-                "The launch log has none of the known errors (certificates, Vulkan, container).",
-                "Le journal de lancement ne contient aucune erreur connue (certificats, Vulkan, conteneur).",
-            ),
+            t("diag-check-launch_log-name"),
+            t("diag-check-launch_log-what"),
         ),
-        "vr_perf" => (
-            tr("VR smoothness", "Fluidité VR"),
-            tr(
-                "Compositor and GPU settings, plus freezes and slowdowns in your last game.",
-                "Réglages du compositeur et du GPU, gels et ralentissements de votre dernière partie.",
-            ),
-        ),
-        "memory" => (
-            tr("Memory", "Mémoire"),
-            tr(
-                "Your last game stayed out of swap.",
-                "Votre dernière partie n'a pas débordé dans le swap.",
-            ),
-        ),
-        "video" => (
-            tr("Videos", "Vidéos"),
-            tr(
-                "yt-dlp started and extracted the YouTube links of your last game.",
-                "yt-dlp a démarré et extrait les liens YouTube de votre dernière partie.",
-            ),
-        ),
+        "vr_perf" => (t("diag-check-vr_perf-name"), t("diag-check-vr_perf-what")),
+        "memory" => (t("diag-check-memory-name"), t("diag-check-memory-what")),
+        "video" => (t("diag-check-video-name"), t("diag-check-video-what")),
         _ => ("?", ""),
     }
 }
@@ -357,18 +279,18 @@ fn localized(f: &Finding) -> (String, Option<String>) {
 
 fn fix_label(fix: FixId) -> &'static str {
     match fix {
-        FixId::Repair => tr("Repair", "Réparer"),
-        FixId::StopSession => tr("Stop the game", "Arrêter le jeu"),
-        FixId::ClearOpenxrOverride => tr("Use automatic detection", "Détection automatique"),
-        FixId::ClearDownloads => tr("Clear downloads", "Vider les téléchargements"),
+        FixId::Repair => t("diag-repair"),
+        FixId::StopSession => t("diag-stop-game"),
+        FixId::ClearOpenxrOverride => t("diag-use-automatic-detection"),
+        FixId::ClearDownloads => t("diag-clear-downloads"),
     }
 }
 
 fn sev_label(s: Severity) -> &'static str {
     match s {
-        Severity::Error => tr("Problem", "Problème"),
-        Severity::Warn => tr("Worth checking", "À surveiller"),
-        Severity::Info => tr("Info", "Info"),
+        Severity::Error => t("diag-problem"),
+        Severity::Warn => t("diag-worth-checking"),
+        Severity::Info => t("diag-info"),
     }
 }
 
@@ -401,9 +323,9 @@ impl Component for Evidence {
                     .child(
                         label()
                             .text(if shown {
-                                tr("Hide details", "Masquer les détails")
+                                t("diag-hide-details")
                             } else {
-                                tr("Details", "Détails")
+                                t("diag-details")
                             })
                             .font_size(crate::theme::size::SMALL)
                             .color(crate::theme::T.muted),
@@ -484,37 +406,30 @@ fn view(mut ui: Ui) -> impl IntoElement {
             spawn_in_window(run_checks(ui, running));
         })
         .child(if busy {
-            tr("Checking…", "Vérification…")
+            t("diag-checking")
         } else {
-            tr("Check again", "Relancer")
+            t("diag-check-again")
         })
         .into_element();
-    let plural = |n: usize, one: &'static str, many: &'static str| {
+    let plural = |n: usize, one: &str, many: &str| {
         if n == 1 {
-            one.to_string()
+            t(one).to_string()
         } else {
-            fill(many, &[n.to_string()])
+            t_with(many, &[n.to_string()])
         }
     };
     let verdict = if findings.is_none() {
         banner(
             Tone::Neutral,
-            tr("Checking…", "Vérification en cours…"),
-            tr("This takes a few seconds.", "Cela prend quelques secondes."),
+            t("diag-checking-2"),
+            t("diag-takes-few-seconds"),
             Some(rerun),
         )
     } else if errors > 0 {
         banner(
             Tone::Error,
-            plural(
-                errors,
-                tr("One problem to fix", "Un problème à corriger"),
-                tr("{} problems to fix", "{} problèmes à corriger"),
-            ),
-            tr(
-                "Start with these. The game probably cannot start or sign in while they remain.",
-                "Commencez par ceux-là. Le jeu ne démarre ou ne se connecte probablement pas tant qu'ils restent.",
-            ),
+            plural(errors, "diag-one-problem-fix", "diag-problems-fix"),
+            t("diag-start-these-game-probably"),
             Some(rerun),
         )
     } else if warns > 0 {
@@ -522,24 +437,18 @@ fn view(mut ui: Ui) -> impl IntoElement {
             Tone::Warn,
             plural(
                 warns,
-                tr("One thing worth checking", "Un point à surveiller"),
-                tr("{} things worth checking", "{} points à surveiller"),
+                "diag-one-thing-worth-checking",
+                "diag-things-worth-checking",
             ),
-            tr(
-                "Nothing is broken, but these can explain slowdowns or odd behaviour.",
-                "Rien n'est cassé, mais ces points peuvent expliquer des ralentissements ou un comportement étrange.",
-            ),
+            t("diag-nothing-broken-but-these"),
             Some(rerun),
         )
     } else {
         banner(
             Tone::Ok,
-            tr("All good", "Tout est en ordre"),
-            fill(
-                tr(
-                    "{} checks passed: install, system, VR and your last game.",
-                    "{} vérifications réussies : installation, système, VR et dernière partie.",
-                ),
+            t("diag-all-good"),
+            t_with(
+                "diag-checks-passed-install-system",
                 &[CHECKS.len().to_string()],
             ),
             Some(rerun),
@@ -553,18 +462,12 @@ fn view(mut ui: Ui) -> impl IntoElement {
         .collect();
     if vr_attention {
         to_fix.push(row(
-            tr("Your VR headset needs attention", "Le casque VR demande de l'attention"),
-            Some(
-                tr(
-                    "A step is missing between the headset and the game, or a setting costs frames.",
-                    "Il manque une étape entre le casque et le jeu, ou un réglage coûte des images.",
-                )
-                .into(),
-            ),
+            t("diag-vr-headset-needs-attention"),
+            Some(t("diag-step-missing-between-headset").into()),
             Some(
                 Button::new()
                     .on_press(move |_| ui.section.set(Section::Vr))
-                    .child(tr("Open the VR page", "Ouvrir la page VR"))
+                    .child(t("diag-open-vr-page"))
                     .into_element(),
             ),
         ));
@@ -588,9 +491,9 @@ fn view(mut ui: Ui) -> impl IntoElement {
                     .map(|f| f.severity)
                     .max()
                 {
-                    Some(Severity::Error) => chip(tr("Problem", "Problème"), Tone::Error),
-                    Some(Severity::Warn) => chip(tr("Worth checking", "À surveiller"), Tone::Warn),
-                    _ => chip(tr("OK", "OK"), Tone::Ok),
+                    Some(Severity::Error) => chip(t("diag-problem"), Tone::Error),
+                    Some(Severity::Warn) => chip(t("diag-worth-checking"), Tone::Warn),
+                    _ => chip(t("diag-ok"), Tone::Ok),
                 }
             };
             row(name, Some(what.to_string()), Some(chip_el.into_element()))
@@ -599,14 +502,8 @@ fn view(mut ui: Ui) -> impl IntoElement {
 
     let help = vec![
         row(
-            tr("Anonymous bug report", "Rapport de bug anonyme"),
-            Some(
-                tr(
-                    "A JSON file with these results and your setup, without your user name or personal paths. Attach it when you ask for help.",
-                    "Un fichier JSON avec ces résultats et votre configuration, sans nom d'utilisateur ni chemin personnel. À joindre quand vous demandez de l'aide.",
-                )
-                .into(),
-            ),
+            t("diag-anonymous-bug-report"),
+            Some(t("diag-json-file-these-results").into()),
             Some(
                 Button::new()
                     .on_press(move |_| {
@@ -617,34 +514,25 @@ fn view(mut ui: Ui) -> impl IntoElement {
                                 match std::fs::write(&p, r) {
                                     Ok(()) => ui.notice(
                                         Severity::Info,
-                                        fill(
-                                            tr("Report saved: {}", "Rapport enregistré : {}"),
-                                            &[p.display().to_string()],
-                                        ),
+                                        t_with("diag-report-saved", &[p.display().to_string()]),
                                     ),
                                     Err(e) => ui.error.set(Some(e.to_string())),
                                 }
                             }
                         });
                     })
-                    .child(tr("Save the report", "Enregistrer le rapport"))
+                    .child(t("diag-save-report"))
                     .into_element(),
             ),
         ),
         row(
-            tr("Launch logs", "Journaux de lancement"),
-            Some(
-                tr(
-                    "What Proton and the game printed, line by line.",
-                    "Ce que Proton et le jeu ont écrit, ligne par ligne.",
-                )
-                .into(),
-            ),
+            t("diag-launch-logs"),
+            Some(t("diag-what-proton-game-printed").into()),
             Some(
                 Button::new()
                     .flat()
                     .on_press(move |_| ui.section.set(Section::Logs))
-                    .child(tr("Open the logs", "Ouvrir les journaux"))
+                    .child(t("diag-open-logs"))
                     .into_element(),
             ),
         ),
@@ -652,13 +540,13 @@ fn view(mut ui: Ui) -> impl IntoElement {
 
     rect()
         .spacing(space::XL)
-        .child(crate::widgets::page_header(tr("Diagnostics", "Diagnostic"), tr(
-            "When something does not work, start here. Unilux checks the install, the system and your last launch, and fixes what it can.",
-            "Quand quelque chose ne marche pas, commencez ici. Unilux vérifie l'installation, le système et le dernier lancement, et corrige ce qu'il peut.",
-        )))
+        .child(crate::widgets::page_header(
+            t("diag-diagnostics"),
+            t("diag-when-something-does-not"),
+        ))
         .child(verdict)
-        .maybe_child((!to_fix.is_empty()).then(|| group(tr("To fix", "À corriger"), divided(to_fix))))
-        .maybe_child((!infos.is_empty()).then(|| group(tr("For your information", "Pour information"), divided(infos))))
-        .child(group(tr("What was checked", "Ce qui a été vérifié"), divided(checked)))
-        .child(group(tr("Ask for help", "Demander de l'aide"), divided(help)))
+        .maybe_child((!to_fix.is_empty()).then(|| group(t("diag-fix"), divided(to_fix))))
+        .maybe_child((!infos.is_empty()).then(|| group(t("diag-information"), divided(infos))))
+        .child(group(t("diag-what-was-checked"), divided(checked)))
+        .child(group(t("diag-ask-help"), divided(help)))
 }
