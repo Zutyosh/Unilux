@@ -126,6 +126,7 @@ pub fn t_with(key: &str, args: &[String]) -> String {
         .into_owned()
 }
 
+#[deprecated(note = "Add text to localisation files and use t() instead")]
 /// A string used in one place: English and French side by side.
 pub fn tr(en: &'static str, fr: &'static str) -> &'static str {
     match current() {
