@@ -3,7 +3,15 @@
 //! single place and reads better next to its code.
 
 use fluent_bundle::FluentResource;
-use std::sync::atomic::{AtomicU8, Ordering};
+use fluent_bundle::concurrent::FluentBundle;
+use std::{
+    borrow::Cow,
+    sync::{
+        OnceLock,
+        atomic::{AtomicU8, Ordering},
+    },
+};
+use unic_langid::LanguageIdentifier;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Lang {
@@ -15,6 +23,28 @@ const LANGS: &[(&str, &str)] = &[
     ("en", include_str!("../locales/en.ftl")),
     ("fr", include_str!("../locales/fr.ftl")),
 ];
+
+type Bundle = FluentBundle<FluentResource>;
+
+static BUNDLES: OnceLock<Vec<(&'static str, Bundle)>> = OnceLock::new();
+
+fn bundles() -> &'static Vec<(&'static str, Bundle)> {
+    BUNDLES.get_or_init(|| {
+        let mut list = Vec::new();
+        for (code, _) in LANGS {
+            let id: LanguageIdentifier = code
+                .parse()
+                .unwrap_or_else(|e| panic!("{code} is not a language code: {e}"));
+            let mut bundle = FluentBundle::new_concurrent(vec![id]);
+            bundle.set_use_isolating(false);
+            bundle
+                .add_resource(parse(code))
+                .unwrap_or_else(|e| panic!("{code}.ftl has duplicate keys: {e:?}"));
+            list.push((*code, bundle));
+        }
+        list
+    })
+}
 
 pub fn detect() -> Lang {
     let chosen = crate::try_svc().and_then(|s| s.config().locale);
@@ -57,17 +87,32 @@ fn parse(key: &str) -> FluentResource {
         .unwrap_or_else(|(_, e)| panic!("{key}.ftl is invalid: {e:?}"))
 }
 
+fn fluent(key: &str) -> Option<&'static str> {
+    let code = match current() {
+        Lang::En => "en",
+        Lang::Fr => "fr",
+    };
+
+    let (_, bundle) = bundles().iter().find(|(c, _)| *c == code)?;
+
+    let id = key.replace('.', "-");
+    let pattern = bundle.get_message(&id)?.value()?;
+
+    let mut errors = Vec::new();
+    let text = bundle.format_pattern(pattern, None, &mut errors);
+
+    match text {
+        Cow::Borrowed(s) => Some(s),
+        Cow::Owned(_) => None,
+    }
+}
+
 pub fn set(l: Lang) {
     CUR.store(if l == Lang::Fr { 2 } else { 1 }, Ordering::Relaxed);
 }
 
 pub fn t(key: &str) -> &'static str {
-    let lang = current();
-    match (TABLE.iter().find(|(k, _, _)| *k == key), lang) {
-        (Some((_, en, _)), Lang::En) => en,
-        (Some((_, _, fr)), Lang::Fr) => fr,
-        (None, _) => "?",
-    }
+    lookup(key).unwrap_or("?")
 }
 
 /// A string used in one place: English and French side by side.
@@ -89,14 +134,17 @@ pub fn fill(template: &str, args: &[String]) -> String {
 
 /// A string that may be absent: the caller falls back to something else.
 pub fn lookup(key: &str) -> Option<&'static str> {
-    let lang = current();
-    TABLE
-        .iter()
-        .find(|(k, _, _)| *k == key)
-        .map(|(_, en, fr)| match lang {
-            Lang::En => *en,
-            Lang::Fr => *fr,
-        })
+    fluent(key).or_else(|| {
+        //try to use fluent first and fallback to the table if something goes wrong
+        let lang = current();
+        TABLE
+            .iter()
+            .find(|(k, _, _)| *k == key)
+            .map(|(_, en, fr)| match lang {
+                Lang::En => *en,
+                Lang::Fr => *fr,
+            })
+    })
 }
 
 /// A fix's name in the user's language; unknown (custom) fixes keep theirs.
