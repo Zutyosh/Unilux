@@ -2,6 +2,7 @@
 //! visible string goes through `t`, or through `tr` when it is used in a
 //! single place and reads better next to its code.
 
+use fluent_bundle::FluentResource;
 use std::sync::atomic::{AtomicU8, Ordering};
 
 #[derive(Clone, Copy, PartialEq)]
@@ -9,6 +10,11 @@ pub enum Lang {
     En,
     Fr,
 }
+
+const LANGS: &[(&str, &str)] = &[
+    ("en", include_str!("../locales/en.ftl")),
+    ("fr", include_str!("../locales/fr.ftl")),
+];
 
 pub fn detect() -> Lang {
     let chosen = crate::try_svc().and_then(|s| s.config().locale);
@@ -37,6 +43,18 @@ pub fn current() -> Lang {
             l
         }
     }
+}
+
+fn parse(key: &str) -> FluentResource {
+    let source = LANGS
+        .iter()
+        .find(|(lang_key, _)| *lang_key == key)
+        .unwrap_or_else(|| panic!("no locale file for {key}"));
+
+    let language = source.1;
+
+    FluentResource::try_new(language.to_string())
+        .unwrap_or_else(|(_, e)| panic!("{key}.ftl is invalid: {e:?}"))
 }
 
 pub fn set(l: Lang) {
@@ -1092,12 +1110,75 @@ const TABLE: &[(&str, &str, &str)] = &[
 
 #[cfg(test)]
 mod tests {
+
+    use super::*;
+    use fluent_syntax::ast::Entry;
+    use std::collections::BTreeSet;
+
+    const TEMPLATE: &str = include_str!("../locales/lang.ftl.template");
+
+    fn parse_template() -> FluentResource {
+        FluentResource::try_new(TEMPLATE.to_string())
+            .unwrap_or_else(|(_, e)| panic!("lang.ftl.template is invalid: {e:?}"))
+    }
+
     #[test]
     fn keys_unique_and_filled() {
         let mut seen = std::collections::HashSet::new();
         for (k, en, fr) in super::TABLE {
             assert!(seen.insert(k), "duplicate {k}");
             assert!(!en.is_empty() && !fr.is_empty(), "{k}");
+        }
+    }
+
+    fn keys(name: &str, resource: &FluentResource) -> BTreeSet<String> {
+        let mut keys = BTreeSet::new();
+        for entry in resource.entries() {
+            if let Entry::Message(message) = entry {
+                let key = message.id.name.to_string();
+                assert!(keys.insert(key.clone()), "{name}: duplicate key {key}");
+            }
+        }
+        keys
+    }
+
+    #[test]
+    fn locale_codes_are_unique() {
+        let mut seen = BTreeSet::new();
+        for (code, _) in LANGS {
+            assert!(seen.insert(code), "LANGS lists {code} twice");
+        }
+    }
+
+    #[test]
+    fn every_locale_has_the_template_keys() {
+        let template = keys("lang.ftl.template", &parse_template());
+        for (code, _) in LANGS {
+            let locale = keys(code, &parse(code));
+            assert_eq!(
+                locale.len(),
+                template.len(),
+                "{code}.ftl has the wrong number of keys"
+            );
+            let missing: Vec<_> = template.difference(&locale).collect();
+            let extra: Vec<_> = locale.difference(&template).collect();
+            assert!(missing.is_empty(), "{code}.ftl is missing {missing:?}");
+            assert!(
+                extra.is_empty(),
+                "{code}.ftl has keys the template lacks: {extra:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn template_has_every_table_key() {
+        let template = keys("lang.ftl.template", &parse_template());
+        for (key, _, _) in TABLE {
+            let key = key.replace('.', "-");
+            assert!(
+                template.contains(&key),
+                "lang.ftl.template is missing {key}"
+            );
         }
     }
 }
