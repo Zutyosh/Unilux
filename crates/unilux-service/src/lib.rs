@@ -2,7 +2,7 @@
 //! Each front end sees the same state, the same events and the same
 //! actions, so an agent can never do something a user could not see.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
 
@@ -27,7 +27,7 @@ use unilux_components::{CpuLevel, Downloader, Sources};
 use unilux_core::exec::{Exec, TokioExec};
 use unilux_core::{Config, Error, Event, Events, Paths, Result, Severity};
 use unilux_diag::{DiagContext, Finding, FixId};
-use unilux_install::{InstallState, Installer, Mode, Options};
+use unilux_install::{InstallState, Installer, Mode, Options, relocate};
 use unilux_patches::{Catalog, PatchStatus};
 use unilux_runner::logs::LogLine;
 use unilux_runner::{LaunchOptions, Launcher, LogBuffer};
@@ -361,6 +361,57 @@ impl Service {
         Ok(n)
     }
 
+    /// Move the Wine prefix into `chosen` (a new `unilux-prefix` folder
+    /// inside it when it is not empty) and remember the new place. Before
+    /// the first install this only records where the prefix will go.
+    pub async fn move_prefix(&self, chosen: PathBuf) -> Result<PathBuf> {
+        if self.inner.session.lock().unwrap().is_some() {
+            return Err(Error::Invalid(
+                "Close Somnium Space before moving its prefix.".into(),
+            ));
+        }
+        self.exclusive(relocate::TASK, async {
+            let from = self.prefix();
+            let to = relocate::target_for(&chosen);
+            relocate::check_target(&from, &to)?;
+            let svc = self.clone();
+            let new = to.clone();
+            let commit = move || svc.record_prefix(&new);
+            if !from.exists() {
+                return commit().map(|()| to);
+            }
+            let proton = self
+                .current_proton()
+                .map(|p| unilux_install::proton_dir(&self.inner.paths, &p));
+            unilux_runner::stop_prefix(&from, proton.as_deref(), &self.inner.events).await?;
+            let (events, cancel, dest) = (
+                self.inner.events.clone(),
+                self.inner.cancel.clone(),
+                to.clone(),
+            );
+            tokio::task::spawn_blocking(move || {
+                relocate::move_prefix(&from, &dest, &events, &cancel, commit)
+            })
+            .await
+            .map_err(|e| Error::Invalid(e.to_string()))??;
+            Ok(to)
+        })
+        .await
+    }
+
+    fn record_prefix(&self, to: &Path) -> Result<()> {
+        let mut cfg = self.config();
+        cfg.prefix = (to != self.inner.paths.default_prefix()).then(|| to.to_path_buf());
+        self.set_config(cfg)?;
+        let file = self.inner.paths.state_file();
+        let mut state = InstallState::load(&file).unwrap_or_default();
+        if state.prefix.is_some() {
+            state.prefix = Some(to.to_path_buf());
+            state.save(&file)?;
+        }
+        Ok(())
+    }
+
     async fn github_reachable(&self) -> bool {
         let url = self.config().catalog_url;
         tokio::time::timeout(
@@ -482,6 +533,43 @@ mod tests {
             .log_file(false)
             .build()
             .unwrap()
+    }
+
+    #[tokio::test]
+    async fn moves_the_prefix_and_remembers_it() {
+        let d = tempfile::tempdir().unwrap();
+        let s = svc(d.path());
+        let default = s.paths().default_prefix();
+        let games = d.path().join("games");
+        assert_eq!(s.move_prefix(games.clone()).await.unwrap(), games);
+        assert_eq!(s.config().prefix, Some(games.clone()));
+        assert!(!games.exists(), "nothing to move before the install");
+
+        std::fs::create_dir_all(games.join("drive_c")).unwrap();
+        std::fs::write(games.join("system.reg"), "reg").unwrap();
+        InstallState {
+            prefix: Some(games.clone()),
+            installed_at: Some(1),
+            ..Default::default()
+        }
+        .save(&s.paths().state_file())
+        .unwrap();
+        std::fs::create_dir_all(&default).unwrap();
+        std::fs::write(default.join("keep"), "x").unwrap();
+        let busy = default.parent().unwrap().to_path_buf();
+        let landed = s.move_prefix(busy.clone()).await.unwrap();
+        assert_eq!(landed, busy.join("unilux-prefix"));
+        assert!(landed.join("system.reg").exists());
+        assert!(!games.exists());
+        assert_eq!(s.status().prefix, landed);
+        let state = InstallState::load(&s.paths().state_file()).unwrap();
+        assert_eq!(state.prefix, Some(landed.clone()));
+
+        std::fs::remove_dir_all(&default).unwrap();
+        assert_eq!(s.move_prefix(default.clone()).await.unwrap(), default);
+        assert_eq!(s.config().prefix, None);
+        assert!(default.join("system.reg").exists());
+        assert!(s.move_prefix(default.join("drive_c")).await.is_err());
     }
 
     #[tokio::test]

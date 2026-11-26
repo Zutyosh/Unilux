@@ -5,7 +5,7 @@
 mod commands;
 mod output;
 
-use commands::{CommunityCmd, PatchCmd, ProtonCmd, RecipeCmd, SessionCmd, parse_id};
+use commands::{CommunityCmd, PatchCmd, PrefixCmd, ProtonCmd, RecipeCmd, SessionCmd, parse_id};
 
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -118,6 +118,11 @@ enum Cmd {
     Community {
         #[command(subcommand)]
         cmd: CommunityCmd,
+    },
+    /// The Wine prefix holding Somnium: where it is, moving it.
+    Prefix {
+        #[command(subcommand)]
+        cmd: PrefixCmd,
     },
     /// Somnium's Wine patches: status, sources, building bundles.
     Patch {
@@ -259,6 +264,7 @@ async fn run(cli: Cli) -> ExitCode {
             }
         }
         Cmd::Proton { cmd } => commands::proton(&out, &svc, cmd).await,
+        Cmd::Prefix { cmd } => commands::prefix(&out, &svc, cmd).await,
         Cmd::Patch { cmd } => commands::patch(&out, &svc, cmd).await,
         Cmd::Recipe { cmd } => commands::recipe(&out, &svc, cmd).await,
         Cmd::Session { cmd } => commands::session(&out, &svc, cmd).await,
