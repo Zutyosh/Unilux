@@ -1,350 +1,366 @@
-update-available
-update-install
-update-restart
-update-package
-prefs-updates
-prefs-updates-version
-prefs-updates-check
-prefs-updates-uptodate
-prefs-updates-auto
-prefs-updates-beta
-app-tagline
-nav-settings
-nav-back
-play
-play-flat
-play-stop
-play-running
-play-waiting
-play-install
-play-repair
-stat-vr
-stat-proton
-stat-patches
-stat-ready
-stat-not_ready
-stat-none
-stat-intact
-stat-changed
-busy
-cancel
-dismiss
-wiz-welcome-title
-wiz-welcome-body
-wiz-sys-python_old
-wiz-sys-python_missing
-wiz-sys-vulkan
-wiz-proton-more
-wiz-source-title
-wiz-source-body
-wiz-source-download
-wiz-source-have
-wiz-source-drop
-wiz-source-drop_now
-wiz-source-drop_hint
-wiz-source-browse
-wiz-source-not_exe
-wiz-installing-step
-wiz-installing-hint
-wiz-failed-title
-wiz-failed-hint
-wiz-failed-retry
-load-0
-load-1
-load-2
-load-3
-load-4
-load-5
-load-6
-load-7
-load-8
-load-9
-wiz-start
-wiz-next
-wiz-back
-wiz-proton-title
-wiz-proton-body
-wiz-proton-recommended
-wiz-installing-title
-wiz-done-title
-wiz-done-body
-wiz-done-go
-step-check_deps
-step-stop_running
-step-catalog
-step-umu
-step-proton
-step-patches
-step-prefix
-step-somnium_installer
-step-desktop_entry
-prefs-general
-prefs-recipes
-recipes-lead
-recipes-tab-setup
-recipes-tab-mine
-setup-current
-setup-change
-setup-configure
-setup-repair
-setup-mine
-setup-step-proton
-setup-step-fixes
-setup-step-build
-setup-choose
-setup-chosen
-setup-recommended
-setup-downloaded
-setup-picked
-setup-next
-setup-back
-setup-on
-setup-proton-title
-setup-proton-lead
-setup-fixes-title
-setup-fixes-lead
-setup-start_from
-setup-name
-setup-name-sub
-setup-build-title
-setup-build-lead
-setup-sum
-setup-sum-proton
-setup-sum-recipe
-setup-sum-fixes
-setup-sum-patches
-setup-apply
-setup-apply-build
-setup-running
-setup-running-sub
-setup-done
-setup-done-sub
-setup-finish
-setup-failed
-setup-failed-lead
-setup-retry
-recipes-tab-sessions
-recipes-tab-community
-recipes-copy
-recipes-copied
-recipes-standing-community
-recipes-standing-proposed
-recipes-standing-untested
-recipes-sessions
-ses-sum-count
-ses-sum-time
-ses-sum-fps
-ses-sum-crash
-ses-back
-ses-world-one
-ses-avg_line
-ses-no_perf
-ses-t-duration
-ses-t-avg
-ses-t-low
-ses-t-crash
-ses-crash-none
-ses-chart-fps
-ses-chart-fps-sub
-ses-chart-load
-ses-chart-load-sub
-ses-lg-avg
-ses-lg-min
-ses-lg-freeze
-ses-lg-gpu
-ses-lg-cpu
-ses-read-fps
-ses-read-load
-ses-no_chart
-ses-no_chart-sub
-ses-partial
-ses-partial-sub
-ses-slow
-ses-dips
-ses-dips-sub
-ses-cause
-ses-cause-gpu_bound
-ses-cause-gpu_clock
-ses-cause-gpu_waiting
-ses-cause-unknown
-ses-dips-gpu
-ses-hitch
-ses-hitch-sub
-ses-hitch-period
-ses-stutter
-ses-stutter-sub
-ses-p99
-ses-p99-sub
-ses-g-title
-ses-g-worlds
-ses-g-joins
-ses-g-videos
-ses-g-videos-sub
-ses-g-errors
-ses-g-errors-sub
-ses-hw
-ses-hw-gpu
-ses-hw-driver
-ses-hw-cpu
-ses-hw-ram
-ses-hw-ram-v
-ses-hw-os
-ses-hw-kernel
-ses-hw-vr
-ses-delete
-ses-delete-confirm
-ses-delete-sub
-recipes-stat-one
-recipes-stat-many
-recipes-stat-nocrash
-recipes-stat-crash-one
-recipes-stat-crash-many
-recipes-stat-videos
-recipes-stat-fixes-one
-recipes-stat-fixes-many
-recipes-stat-pinned
-recipes-stat-tested
-recipes-crashes
-recipes-videos
-fix-tls-client-certs-title
-fix-tls-client-certs-sum
-fix-media-by-url-title
-fix-media-by-url-sum
-fix-ytdlp-hook-title
-fix-ytdlp-hook-sum
-fix-ytdlp-android-client-title
-fix-ytdlp-android-client-sum
-recipe-recommended-title
-recipe-recommended-desc
-recipes-worlds
-recipes-build
-recipes-build-sub
-recipes-build-now
-recipes-restore
-recipes-restore-sub
-recipes-in_use
-recipes-active
-recipes-builtin
-recipes-yours
-recipes-official
-recipes-fork
-recipes-fork-suffix
-recipes-edit
-recipes-yours-none
-recipes-yours-none-sub
-recipes-proton-picked
-recipes-proton-latest
-recipes-custom
-recipes-custom-warn
-recipes-duplicate
-recipes-export
-recipes-share
-recipes-share-prefilled
-recipes-share-paste
-recipes-share-sub
-recipes-share-open
-recipes-share-recipe
-recipes-share-reports
-recipes-copy-button
-recipes-new
-recipes-import
-recipes-import-sub
-recipes-imported
-recipes-saved
-recipes-create-lead
-recipes-field-title
-recipes-field-title-ph
-recipes-field-id
-recipes-field-description
-recipes-field-proton
-recipes-field-proton-sub
-recipes-ingredients
-recipes-order
-recipes-kind-patch
-recipes-kind-env
-recipes-check-build
-recipes-check-env
-recipes-cancel
-recipes-save
-recipes-save_use
-recipes-crash
-recipes-crash-exit
-recipes-desktop
-recipes-sessions-title
-recipes-sessions-record
-recipes-sessions-record-sub
-recipes-sessions-last
-recipes-sessions-last-sub
-recipes-sessions-last-button
-recipes-sessions-saved
-recipes-sessions-none
-recipes-sessions-none-sub
-recipes-community-lead
-recipes-community-offline
-recipes-community-empty
-recipes-community-empty-sub
-recipes-community-add
-build-title
-build-sub
-build-stage-image
-build-stage-sources
-build-stage-prep
-build-stage-patch
-build-stage-compile
-build-stage-package
-build-hide
-prefs-proton
-prefs-patches
-prefs-vr
-prefs-diagnostics
-prefs-logs
-prefs-agents
-prefs-lang
-prefs-lang-auto
-prefs-lang-sub
-prefs-wait
-prefs-wait-sub
-prefs-prefix
-prefs-repair
-prefs-repair-sub
-prefs-proton-installed
-prefs-proton-available
-prefs-proton-use
-prefs-proton-in_use
-prefs-proton-download
-prefs-proton-remove
-prefs-proton-refresh
-prefs-patch-verified
-prefs-patch-untested
-prefs-patch-none
-prefs-patch-built
-prefs-patch-on_use
-prefs-patch-not_needed
-prefs-patch-need_builder
-prefs-proton-pre
-prefs-proton-more
-prefs-proton-lead
-prefs-patches-lead
-prefs-patches-current
-prefs-patches-build-missing
-prefs-patches-build-optional
-prefs-patches-build-missing-cmd
-prefs-patches-files
-prefs-patches-build
-prefs-patches-build-sub
-prefs-patches-restore
-prefs-vr-runtime
-prefs-vr-installed
-prefs-vr-openvr
-prefs-vr-blockers
-prefs-vr-ready
-diag-run
-diag-none
-diag-apply
-diag-report
-agents-lead
-agents-socket
-agents-approve
-agents-deny
-agents-pending
-agents-audit
+### Template for a new Unilux language.
+### Copy this file to locales/<code>.ftl (for example de.ftl or pt-BR.ftl),
+### replace every {""} with the translation, and add the language to LANGS in src/i18n.rs.
+### Keep every { $name } variable listed in the comment above a message.
+
+update-available = {""}
+update-install = {""}
+update-restart = {""}
+update-package = {""}
+prefs-updates = {""}
+prefs-updates-version = {""}
+prefs-updates-check = {""}
+prefs-updates-uptodate = {""}
+prefs-updates-auto = {""}
+prefs-updates-beta = {""}
+app-tagline = {""}
+nav-settings = {""}
+nav-back = {""}
+play = {""}
+play-flat = {""}
+play-stop = {""}
+play-running = {""}
+play-waiting = {""}
+play-install = {""}
+play-repair = {""}
+stat-vr = {""}
+stat-proton = {""}
+stat-patches = {""}
+stat-ready = {""}
+stat-not_ready = {""}
+stat-none = {""}
+stat-intact = {""}
+stat-changed = {""}
+busy = {""}
+cancel = {""}
+dismiss = {""}
+wiz-welcome-title = {""}
+wiz-welcome-body = {""}
+wiz-sys-python_old = {""}
+wiz-sys-python_missing = {""}
+wiz-sys-vulkan = {""}
+wiz-proton-more = {""}
+wiz-source-title = {""}
+wiz-source-body = {""}
+wiz-source-download = {""}
+wiz-source-have = {""}
+wiz-source-drop = {""}
+wiz-source-drop_now = {""}
+wiz-source-drop_hint = {""}
+wiz-source-browse = {""}
+wiz-source-not_exe = {""}
+wiz-installing-step = {""}
+wiz-installing-hint = {""}
+wiz-failed-title = {""}
+wiz-failed-hint = {""}
+wiz-failed-retry = {""}
+load-0 = {""}
+load-1 = {""}
+load-2 = {""}
+load-3 = {""}
+load-4 = {""}
+load-5 = {""}
+load-6 = {""}
+load-7 = {""}
+load-8 = {""}
+load-9 = {""}
+wiz-start = {""}
+wiz-next = {""}
+wiz-back = {""}
+wiz-proton-title = {""}
+wiz-proton-body = {""}
+wiz-proton-recommended = {""}
+wiz-installing-title = {""}
+wiz-done-title = {""}
+wiz-done-body = {""}
+wiz-done-go = {""}
+step-check_deps = {""}
+step-stop_running = {""}
+step-catalog = {""}
+step-umu = {""}
+step-proton = {""}
+step-patches = {""}
+step-prefix = {""}
+step-somnium_installer = {""}
+step-desktop_entry = {""}
+prefs-general = {""}
+prefs-recipes = {""}
+recipes-lead = {""}
+recipes-tab-setup = {""}
+recipes-tab-mine = {""}
+setup-current = {""}
+setup-change = {""}
+setup-configure = {""}
+setup-repair = {""}
+setup-mine = {""}
+setup-step-proton = {""}
+setup-step-fixes = {""}
+setup-step-build = {""}
+setup-choose = {""}
+setup-chosen = {""}
+setup-recommended = {""}
+setup-downloaded = {""}
+setup-picked = {""}
+setup-next = {""}
+setup-back = {""}
+setup-on = {""}
+setup-proton-title = {""}
+setup-proton-lead = {""}
+setup-fixes-title = {""}
+setup-fixes-lead = {""}
+setup-start_from = {""}
+setup-name = {""}
+setup-name-sub = {""}
+setup-build-title = {""}
+setup-build-lead = {""}
+setup-sum = {""}
+setup-sum-proton = {""}
+setup-sum-recipe = {""}
+setup-sum-fixes = {""}
+setup-sum-patches = {""}
+setup-apply = {""}
+setup-apply-build = {""}
+setup-running = {""}
+setup-running-sub = {""}
+setup-done = {""}
+setup-done-sub = {""}
+setup-finish = {""}
+setup-failed = {""}
+setup-failed-lead = {""}
+setup-retry = {""}
+recipes-tab-sessions = {""}
+recipes-tab-community = {""}
+recipes-copy = {""}
+recipes-copied = {""}
+recipes-standing-community = {""}
+recipes-standing-proposed = {""}
+recipes-standing-untested = {""}
+recipes-sessions = {""}
+ses-sum-count = {""}
+ses-sum-time = {""}
+ses-sum-fps = {""}
+ses-sum-crash = {""}
+ses-back = {""}
+ses-world-one = {""}
+# Variables: $p1, $p2
+ses-avg_line = {""}
+ses-no_perf = {""}
+ses-t-duration = {""}
+ses-t-avg = {""}
+ses-t-low = {""}
+ses-t-crash = {""}
+ses-crash-none = {""}
+ses-chart-fps = {""}
+ses-chart-fps-sub = {""}
+ses-chart-load = {""}
+ses-chart-load-sub = {""}
+ses-lg-avg = {""}
+ses-lg-min = {""}
+ses-lg-freeze = {""}
+ses-lg-gpu = {""}
+ses-lg-cpu = {""}
+# Variables: $p1, $p2, $p3
+ses-read-fps = {""}
+# Variables: $p1, $p2, $p3
+ses-read-load = {""}
+ses-no_chart = {""}
+ses-no_chart-sub = {""}
+ses-partial = {""}
+# Variables: $p1, $p2
+ses-partial-sub = {""}
+ses-slow = {""}
+ses-dips = {""}
+# Variables: $p1, $p2, $p3
+ses-dips-sub = {""}
+ses-cause = {""}
+ses-cause-gpu_bound = {""}
+ses-cause-gpu_clock = {""}
+ses-cause-gpu_waiting = {""}
+ses-cause-unknown = {""}
+# Variables: $p1, $p2
+ses-dips-gpu = {""}
+ses-hitch = {""}
+# Variables: $p1, $p2, $p3
+ses-hitch-sub = {""}
+# Variables: $p1
+ses-hitch-period = {""}
+ses-stutter = {""}
+# Variables: $p1
+ses-stutter-sub = {""}
+ses-p99 = {""}
+# Variables: $p1
+ses-p99-sub = {""}
+ses-g-title = {""}
+ses-g-worlds = {""}
+ses-g-joins = {""}
+ses-g-videos = {""}
+ses-g-videos-sub = {""}
+ses-g-errors = {""}
+ses-g-errors-sub = {""}
+ses-hw = {""}
+ses-hw-gpu = {""}
+ses-hw-driver = {""}
+ses-hw-cpu = {""}
+ses-hw-ram = {""}
+# Variables: $p1
+ses-hw-ram-v = {""}
+ses-hw-os = {""}
+ses-hw-kernel = {""}
+ses-hw-vr = {""}
+ses-delete = {""}
+ses-delete-confirm = {""}
+ses-delete-sub = {""}
+recipes-stat-one = {""}
+recipes-stat-many = {""}
+recipes-stat-nocrash = {""}
+recipes-stat-crash-one = {""}
+recipes-stat-crash-many = {""}
+recipes-stat-videos = {""}
+recipes-stat-fixes-one = {""}
+recipes-stat-fixes-many = {""}
+recipes-stat-pinned = {""}
+recipes-stat-tested = {""}
+recipes-crashes = {""}
+recipes-videos = {""}
+fix-tls-client-certs-title = {""}
+fix-tls-client-certs-sum = {""}
+fix-media-by-url-title = {""}
+fix-media-by-url-sum = {""}
+fix-ytdlp-hook-title = {""}
+fix-ytdlp-hook-sum = {""}
+fix-ytdlp-android-client-title = {""}
+fix-ytdlp-android-client-sum = {""}
+recipe-recommended-title = {""}
+recipe-recommended-desc = {""}
+recipes-worlds = {""}
+recipes-build = {""}
+recipes-build-sub = {""}
+recipes-build-now = {""}
+recipes-restore = {""}
+recipes-restore-sub = {""}
+recipes-in_use = {""}
+recipes-active = {""}
+recipes-builtin = {""}
+recipes-yours = {""}
+recipes-official = {""}
+recipes-fork = {""}
+recipes-fork-suffix = {""}
+recipes-edit = {""}
+recipes-yours-none = {""}
+recipes-yours-none-sub = {""}
+recipes-proton-picked = {""}
+recipes-proton-latest = {""}
+recipes-custom = {""}
+recipes-custom-warn = {""}
+recipes-duplicate = {""}
+recipes-export = {""}
+recipes-share = {""}
+recipes-share-prefilled = {""}
+recipes-share-paste = {""}
+recipes-share-sub = {""}
+recipes-share-open = {""}
+recipes-share-recipe = {""}
+recipes-share-reports = {""}
+recipes-copy-button = {""}
+recipes-new = {""}
+recipes-import = {""}
+recipes-import-sub = {""}
+recipes-imported = {""}
+recipes-saved = {""}
+recipes-create-lead = {""}
+recipes-field-title = {""}
+recipes-field-title-ph = {""}
+recipes-field-id = {""}
+recipes-field-description = {""}
+recipes-field-proton = {""}
+recipes-field-proton-sub = {""}
+recipes-ingredients = {""}
+recipes-order = {""}
+recipes-kind-patch = {""}
+recipes-kind-env = {""}
+recipes-check-build = {""}
+recipes-check-env = {""}
+recipes-cancel = {""}
+recipes-save = {""}
+recipes-save_use = {""}
+recipes-crash = {""}
+recipes-crash-exit = {""}
+recipes-desktop = {""}
+recipes-sessions-title = {""}
+recipes-sessions-record = {""}
+recipes-sessions-record-sub = {""}
+recipes-sessions-last = {""}
+recipes-sessions-last-sub = {""}
+recipes-sessions-last-button = {""}
+recipes-sessions-saved = {""}
+recipes-sessions-none = {""}
+recipes-sessions-none-sub = {""}
+recipes-community-lead = {""}
+recipes-community-offline = {""}
+recipes-community-empty = {""}
+recipes-community-empty-sub = {""}
+recipes-community-add = {""}
+build-title = {""}
+build-sub = {""}
+build-stage-image = {""}
+build-stage-sources = {""}
+build-stage-prep = {""}
+build-stage-patch = {""}
+build-stage-compile = {""}
+build-stage-package = {""}
+build-hide = {""}
+prefs-proton = {""}
+prefs-patches = {""}
+prefs-vr = {""}
+prefs-diagnostics = {""}
+prefs-logs = {""}
+prefs-agents = {""}
+prefs-lang = {""}
+prefs-lang-auto = {""}
+prefs-lang-sub = {""}
+prefs-wait = {""}
+prefs-wait-sub = {""}
+prefs-prefix = {""}
+prefs-repair = {""}
+prefs-repair-sub = {""}
+prefs-proton-installed = {""}
+prefs-proton-available = {""}
+prefs-proton-use = {""}
+prefs-proton-in_use = {""}
+prefs-proton-download = {""}
+prefs-proton-remove = {""}
+prefs-proton-refresh = {""}
+prefs-patch-verified = {""}
+prefs-patch-untested = {""}
+prefs-patch-none = {""}
+prefs-patch-built = {""}
+prefs-patch-on_use = {""}
+prefs-patch-not_needed = {""}
+prefs-patch-need_builder = {""}
+prefs-proton-pre = {""}
+prefs-proton-more = {""}
+prefs-proton-lead = {""}
+prefs-patches-lead = {""}
+prefs-patches-current = {""}
+prefs-patches-build-missing = {""}
+prefs-patches-build-optional = {""}
+prefs-patches-build-missing-cmd = {""}
+prefs-patches-files = {""}
+prefs-patches-build = {""}
+prefs-patches-build-sub = {""}
+prefs-patches-restore = {""}
+prefs-vr-runtime = {""}
+prefs-vr-installed = {""}
+prefs-vr-openvr = {""}
+prefs-vr-blockers = {""}
+prefs-vr-ready = {""}
+diag-run = {""}
+diag-none = {""}
+diag-apply = {""}
+diag-report = {""}
+agents-lead = {""}
+agents-socket = {""}
+agents-approve = {""}
+agents-deny = {""}
+agents-pending = {""}
+agents-audit = {""}
