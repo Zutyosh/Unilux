@@ -109,6 +109,32 @@ build-sub = Wine compiles in a container. The first build takes a while; later o
 build-title = Building the patches
 busy = Working
 cancel = Cancel
+date-event = { date-weekday } { $day } { date-month }, { $hour }:{ $minute }
+date-full = { date-month } { $day }, { $year }, { $hour }:{ $minute }
+date-month = { $month ->
+     [1] Jan
+     [2] Feb
+     [3] Mar
+     [4] Apr
+     [5] May
+     [6] Jun
+     [7] Jul
+     [8] Aug
+     [9] Sep
+     [10] Oct
+     [11] Nov
+    *[12] Dec
+    }
+date-time = { $hour }:{ $minute }
+date-weekday = { $weekday ->
+     [1] Mon
+     [2] Tue
+     [3] Wed
+     [4] Thu
+     [5] Fri
+     [6] Sat
+    *[7] Sun
+    }
 diag-all-good = All good
 diag-anonymous-bug-report = Anonymous bug report
 diag-apply = Apply
@@ -188,6 +214,7 @@ events-code = Code
 events-code-sent = Code sent to { $p1 }.
 events-code-sent-sms = Code sent by SMS.
 events-confirm = Confirm
+events-countdown-days = { $p1 } d { $p2 } h
 events-e-mail-user-name = E-mail or user name
 events-enter-6-digit-code = Enter the 6-digit code from your authenticator app.
 events-enter-one-backup-codes = Enter one of the backup codes Somnium gave you.

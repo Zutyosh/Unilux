@@ -124,6 +124,16 @@ build-sub = {""}
 build-title = {""}
 busy = {""}
 cancel = {""}
+# Variables: $day, $month, $weekday, $hour, $minute
+date-event = {""}
+# Variables: $day, $month, $year, $hour, $minute
+date-full = {""}
+# Variables: $month
+date-month = {""}
+# Variables: $hour, $minute
+date-time = {""}
+# Variables: $weekday
+date-weekday = {""}
 diag-all-good = {""}
 diag-anonymous-bug-report = {""}
 diag-apply = {""}
@@ -208,6 +218,8 @@ events-code = {""}
 events-code-sent = {""}
 events-code-sent-sms = {""}
 events-confirm = {""}
+# Variables: $p1, $p2
+events-countdown-days = {""}
 events-e-mail-user-name = {""}
 events-enter-6-digit-code = {""}
 events-enter-one-backup-codes = {""}

@@ -2,6 +2,7 @@
 //! visible string goes through `t`, or through `tr` when it is used in a
 //! single place and reads better next to its code.
 
+use chrono::{DateTime, Datelike, Local, Timelike};
 use fluent_bundle::concurrent::FluentBundle;
 use fluent_bundle::{FluentArgs, FluentResource};
 use std::{
@@ -89,11 +90,6 @@ fn parse(key: &str) -> FluentResource {
 }
 
 fn fluent(key: &str, args: Option<&[String]>) -> Option<Cow<'static, str>> {
-    let code = match current() {
-        Lang::En => "en",
-        Lang::Fr => "fr",
-    };
-
     let args = args.map(|list| {
         let mut fluent_args = FluentArgs::new();
         for (i, value) in list.iter().enumerate() {
@@ -101,6 +97,14 @@ fn fluent(key: &str, args: Option<&[String]>) -> Option<Cow<'static, str>> {
         }
         fluent_args
     });
+    format(key, args.as_ref())
+}
+
+fn format(key: &str, args: Option<&FluentArgs>) -> Option<Cow<'static, str>> {
+    let code = match current() {
+        Lang::En => "en",
+        Lang::Fr => "fr",
+    };
 
     let (_, bundle) = bundles().iter().find(|(c, _)| *c == code)?;
 
@@ -108,8 +112,37 @@ fn fluent(key: &str, args: Option<&[String]>) -> Option<Cow<'static, str>> {
     let pattern = bundle.get_message(&id)?.value()?;
 
     let mut errors = Vec::new();
-    let text = bundle.format_pattern(pattern, args.as_ref(), &mut errors);
-    Some(text)
+    Some(bundle.format_pattern(pattern, args, &mut errors))
+}
+
+/// Which parts of a date `t_date` shows.
+#[derive(Clone, Copy)]
+pub enum DateStyle {
+    /// "Nov 11, 2026, 13:13"
+    Full,
+    /// "Thu 12 Nov, 20:00"
+    Event,
+    /// "20:00"
+    Time,
+}
+
+/// A date in the interface language, laid out by the `date-*` messages.
+pub fn t_date(at: DateTime<Local>, style: DateStyle) -> String {
+    let key = match style {
+        DateStyle::Full => "date-full",
+        DateStyle::Event => "date-event",
+        DateStyle::Time => "date-time",
+    };
+    let mut args = FluentArgs::new();
+    args.set("day", at.day());
+    args.set("month", at.month());
+    args.set("year", at.year());
+    args.set("weekday", at.weekday().number_from_monday());
+    args.set("hour", format!("{:02}", at.hour()));
+    args.set("minute", format!("{:02}", at.minute()));
+    format(key, Some(&args))
+        .unwrap_or(Cow::Borrowed("?"))
+        .into_owned()
 }
 
 pub fn set(l: Lang) {
