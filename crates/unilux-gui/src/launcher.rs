@@ -82,7 +82,7 @@ fn view(ui: Ui) -> impl IntoElement {
                         .maybe_child(crate::events::online_badge(ui))
                         .maybe_child(
                             (!ui.approvals.read().is_empty())
-                                .then(|| chip(t("agents.pending"), Tone::Accent)),
+                                .then(|| chip(t("agents-pending"), Tone::Accent)),
                         )
                         .maybe_child(update_badge(ui)),
                 ),
@@ -143,15 +143,15 @@ fn vr_line(st: &Status) -> (String, Tone) {
             r.name.clone().unwrap_or_else(|| r.kind.to_string()),
             Tone::Warn,
         ),
-        (None, _) => (t("stat.not_ready").to_string(), Tone::Warn),
+        (None, _) => (t("stat-not_ready").to_string(), Tone::Warn),
     }
 }
 
 fn patch_line(st: &Status) -> (String, Tone) {
     match &st.patches {
-        Some(p) if p.bundle.is_some() && p.intact => (t("stat.intact").to_string(), Tone::Ok),
-        Some(p) if p.bundle.is_some() => (t("stat.changed").to_string(), Tone::Error),
-        _ => (t("stat.none").to_string(), Tone::Error),
+        Some(p) if p.bundle.is_some() && p.intact => (t("stat-intact").to_string(), Tone::Ok),
+        Some(p) if p.bundle.is_some() => (t("stat-changed").to_string(), Tone::Error),
+        _ => (t("stat-none").to_string(), Tone::Error),
     }
 }
 
@@ -167,14 +167,14 @@ fn status_card(st: &Status) -> impl IntoElement {
         .proton
         .clone()
         .map(|p| p.split_once(':').map(|(_, t)| t.to_string()).unwrap_or(p))
-        .unwrap_or_else(|| t("stat.none").into());
+        .unwrap_or_else(|| t("stat-none").into());
     glass_panel()
         .horizontal()
         .spacing(space::XXL)
         .padding((space::M, space::XL))
-        .child(stat(t("stat.vr"), vr, vr_tone))
-        .child(stat(t("stat.proton"), proton, proton_tone))
-        .child(stat(t("stat.patches"), patches, patch_tone))
+        .child(stat(t("stat-vr"), vr, vr_tone))
+        .child(stat(t("stat-proton"), proton, proton_tone))
+        .child(stat(t("stat-patches"), patches, patch_tone))
 }
 
 fn progress_line(ui: Ui) -> Option<Element> {
@@ -189,8 +189,12 @@ fn progress_line(ui: Ui) -> Option<Element> {
             .width(Size::px(280.))
             .spacing(space::XS)
             .child(muted(
-                step.map(|s| crate::i18n::step(&s))
-                    .or(progress.map(|p| crate::i18n::step(&p.0)))
+                step.or(progress.map(|p| p.0))
+                    .map(|s| {
+                        crate::i18n::lookup(&format!("step-{s}"))
+                            .map(str::to_string)
+                            .unwrap_or_else(|| s.replace('_', " "))
+                    })
                     .unwrap_or_default(),
             ))
             .child(
@@ -217,7 +221,7 @@ fn actions(mut ui: Ui, st: &Status) -> impl IntoElement {
         .child(settings_icon());
     let row = row.maybe_child(progress_line(ui));
     let play: Element = if !st.installed {
-        pill(t("play.install"))
+        pill(t("play-install"))
             .on_press(move |_| ui.screen.set(Screen::Wizard))
             .corner_radius(RADIUS_PILL)
             .padding((14., 44.))
@@ -227,13 +231,13 @@ fn actions(mut ui: Ui, st: &Status) -> impl IntoElement {
             .horizontal()
             .spacing(space::S)
             .cross_align(Alignment::Center)
-            .child(chip(t("play.running"), Tone::Ok))
+            .child(chip(t("play-running"), Tone::Ok))
             .child(
                 Button::new()
                     .corner_radius(RADIUS_PILL)
                     .padding((14., 32.))
                     .on_press(move |_| ui.run(async { svc().stop().await }, |_| {}))
-                    .child(t("play.stop")),
+                    .child(t("play-stop")),
             )
             .into_element()
     } else if busy {
@@ -250,11 +254,11 @@ fn actions(mut ui: Ui, st: &Status) -> impl IntoElement {
             .spacing(space::S)
             .cross_align(Alignment::Center)
             .maybe_child(needs_repair.then(|| {
-                glass_button(Icon::Wrench, t("play.repair"))
+                glass_button(Icon::Wrench, t("play-repair"))
                     .on_press(move |_| ui.run(async { svc().repair().await }, |_| {}))
             }))
             .child(
-                glass_button(Icon::Monitor, t("play.flat")).on_press(move |_| {
+                glass_button(Icon::Monitor, t("play-flat")).on_press(move |_| {
                     ui.run(
                         async { svc().launch(LaunchOpts { allow_flat: true }).await },
                         |_| {},
@@ -279,13 +283,13 @@ fn update_badge(ui: Ui) -> Option<Element> {
             Button::new()
                 .filled()
                 .on_press(|_| crate::restart())
-                .child(t("update.restart"))
+                .child(t("update-restart"))
                 .into_element(),
         );
     }
     let info = ui.update.read().clone()?;
     let rel = info.available?;
-    let text = format!("{} {}", t("update.available"), rel.version);
+    let text = format!("{} {}", t("update-available"), rel.version);
     let r = rect()
         .horizontal()
         .spacing(space::S)
@@ -296,10 +300,10 @@ fn update_badge(ui: Ui) -> Option<Element> {
             Button::new()
                 .compact()
                 .on_press(move |_| ui.update_now())
-                .child(t("update.install")),
+                .child(t("update-install")),
         )
         .into_element()
     } else {
-        r.child(muted(t("update.package"))).into_element()
+        r.child(muted(t("update-package"))).into_element()
     })
 }

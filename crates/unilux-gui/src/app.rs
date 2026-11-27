@@ -18,7 +18,7 @@ pub fn app() -> impl IntoElement {
         Screen::Wizard => wizard::WizardScreen(ui).into_element(),
         Screen::Settings => settings::SettingsScreen(ui).into_element(),
     };
-    let lang = *ui.lang.read() as u8;
+    let lang = *ui.lang.read();
     let body: Element = rect().expanded().key(lang).child(body).into_element();
     let bg = ui.background.read().clone();
     rect()

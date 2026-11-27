@@ -5,7 +5,7 @@ use unilux_core::Severity;
 use unilux_diag::checks::CHECKS;
 use unilux_diag::{Finding, FixId};
 
-use crate::i18n::{Lang, current, fill, tr};
+use crate::i18n::{t, t_named, t_with};
 use crate::state::{Section, Ui};
 use crate::svc;
 use crate::theme::space;
@@ -33,342 +33,56 @@ async fn run_checks(mut ui: Ui, mut running: State<bool>) {
 /// What each check looks at, in plain words.
 fn check_meta(id: &str) -> (&'static str, &'static str) {
     match id {
-        "python" => (
-            tr("Python", "Python"),
-            tr(
-                "umu-run, which starts the game, needs Python 3.10 or newer.",
-                "umu-run, qui démarre le jeu, a besoin de Python 3.10 ou plus récent.",
-            ),
-        ),
-        "gpu" => (
-            tr("Graphics card", "Carte graphique"),
-            tr(
-                "A Vulkan driver is installed. Proton draws the game with it.",
-                "Un pilote Vulkan est installé. Proton dessine le jeu avec.",
-            ),
-        ),
-        "network" => (
-            tr("Connection to GitHub", "Connexion à GitHub"),
-            tr(
-                "Installs and updates are downloaded from GitHub.",
-                "Les installations et les mises à jour se téléchargent depuis GitHub.",
-            ),
-        ),
-        "install" => (
-            tr("Installation", "Installation"),
-            tr(
-                "Somnium Space, umu-run and Proton are all there.",
-                "Somnium Space, umu-run et Proton sont tous présents.",
-            ),
-        ),
-        "patches" => (
-            tr("Wine patches", "Correctifs Wine"),
-            tr(
-                "The sign-in patches are in Proton, untouched, and fit this version.",
-                "Les correctifs de connexion sont dans Proton, intacts, et adaptés à cette version.",
-            ),
-        ),
-        "proton" => (
-            tr("Proton version", "Version de Proton"),
-            tr(
-                "Proton 9 or newer, which VR needs.",
-                "Proton 9 ou plus récent, ce dont la VR a besoin.",
-            ),
-        ),
-        "openxr" => (
-            tr("VR headset", "Casque VR"),
-            tr(
-                "A VR runtime is active and linked to the game. Details are on the VR page.",
-                "Un runtime VR est actif et relié au jeu. Le détail est dans la page VR.",
-            ),
-        ),
-        "session" => (
-            tr("Game running", "Jeu en cours"),
-            tr(
-                "Whether Somnium Space is already running.",
-                "Si Somnium Space tourne déjà.",
-            ),
-        ),
+        "python" => (t("diag-check-python-name"), t("diag-check-python-what")),
+        "gpu" => (t("diag-check-gpu-name"), t("diag-check-gpu-what")),
+        "network" => (t("diag-check-network-name"), t("diag-check-network-what")),
+        "install" => (t("diag-check-install-name"), t("diag-check-install-what")),
+        "patches" => (t("diag-check-patches-name"), t("diag-check-patches-what")),
+        "proton" => (t("diag-check-proton-name"), t("diag-check-proton-what")),
+        "openxr" => (t("diag-check-openxr-name"), t("diag-check-openxr-what")),
+        "session" => (t("diag-check-session-name"), t("diag-check-session-what")),
         "desktop_entry" => (
-            tr("Menu shortcut", "Raccourci du menu"),
-            tr(
-                "The entry in your applications menu exists.",
-                "L'entrée du menu des applications existe.",
-            ),
+            t("diag-check-desktop_entry-name"),
+            t("diag-check-desktop_entry-what"),
         ),
-        "sandbox" => (
-            tr("Environment", "Environnement"),
-            tr(
-                "Unilux is not in a sandbox that would block Proton.",
-                "Unilux n'est pas dans un bac à sable qui bloquerait Proton.",
-            ),
-        ),
+        "sandbox" => (t("diag-check-sandbox-name"), t("diag-check-sandbox-what")),
         "launch_log" => (
-            tr("Last launch", "Dernier lancement"),
-            tr(
-                "The launch log has none of the known errors (certificates, Vulkan, container).",
-                "Le journal de lancement ne contient aucune erreur connue (certificats, Vulkan, conteneur).",
-            ),
+            t("diag-check-launch_log-name"),
+            t("diag-check-launch_log-what"),
         ),
-        "vr_perf" => (
-            tr("VR smoothness", "Fluidité VR"),
-            tr(
-                "Compositor and GPU settings, plus freezes and slowdowns in your last game.",
-                "Réglages du compositeur et du GPU, gels et ralentissements de votre dernière partie.",
-            ),
-        ),
-        "memory" => (
-            tr("Memory", "Mémoire"),
-            tr(
-                "Your last game stayed out of swap.",
-                "Votre dernière partie n'a pas débordé dans le swap.",
-            ),
-        ),
-        "video" => (
-            tr("Videos", "Vidéos"),
-            tr(
-                "yt-dlp started and extracted the YouTube links of your last game.",
-                "yt-dlp a démarré et extrait les liens YouTube de votre dernière partie.",
-            ),
-        ),
+        "vr_perf" => (t("diag-check-vr_perf-name"), t("diag-check-vr_perf-what")),
+        "memory" => (t("diag-check-memory-name"), t("diag-check-memory-what")),
+        "video" => (t("diag-check-video-name"), t("diag-check-video-what")),
         _ => ("?", ""),
     }
 }
 
-/// French text for the engine's English findings: (title, title in French, advice in French).
-const FR: &[(&str, &str, &str)] = &[
-    (
-        "python3 is not installed",
-        "python3 n'est pas installé",
-        "umu-run a besoin de Python 3.10 ou plus récent. Installez-le avec votre gestionnaire de paquets.",
-    ),
-    (
-        "No Vulkan driver found",
-        "Aucun pilote Vulkan trouvé",
-        "Proton dessine le jeu avec Vulkan. Installez le pilote Vulkan de votre carte graphique (mesa-vulkan-drivers, vulkan-radeon, nvidia-utils...).",
-    ),
-    (
-        "No GPU found under /sys/class/drm",
-        "Aucune carte graphique détectée",
-        "",
-    ),
-    (
-        "GitHub is not reachable",
-        "GitHub est injoignable",
-        "Les installations et les réparations se téléchargent depuis GitHub. Vérifiez votre connexion, votre proxy ou votre pare-feu.",
-    ),
-    (
-        "Somnium Space is not installed in the prefix",
-        "Somnium Space n'est pas installé",
-        "Lancez l'installation avec l'installeur Windows de Somnium, sur somniumspace.com.",
-    ),
-    (
-        "umu-run is missing",
-        "umu-run est absent",
-        "Une réparation le télécharge à nouveau.",
-    ),
-    (
-        "Proton is missing",
-        "Proton est absent",
-        "Une réparation le télécharge à nouveau.",
-    ),
-    (
-        "No Proton version recorded",
-        "Aucune version de Proton enregistrée",
-        "Une réparation en choisit une.",
-    ),
-    (
-        "No Somnium patch bundle is installed in this Proton",
-        "Les correctifs Somnium ne sont pas dans ce Proton",
-        "Sans eux, le launcher ne peut pas se connecter : Wine d'origine ne gère pas les certificats clients TLS dont Somnium a besoin.",
-    ),
-    (
-        "OpenXR detection is replaced by manual settings",
-        "La détection VR est remplacée par des réglages manuels",
-        "Ces réglages remplacent la détection automatique. Si vous en avez besoin, signalez votre runtime pour que la détection le gère.",
-    ),
-    (
-        "Unilux is running inside a Flatpak sandbox",
-        "Unilux tourne dans un bac à sable Flatpak",
-        "Le conteneur de Proton ne peut pas démarrer depuis Flatpak sans accès à l'hôte. Utilisez l'AppImage ou le paquet natif.",
-    ),
-    (
-        "The start-menu entry is missing",
-        "Le raccourci du menu est absent",
-        "Une réparation le recrée.",
-    ),
-    (
-        "TLS errors in the launch log",
-        "Erreurs TLS dans le journal de lancement",
-        "Les bibliothèques secur32 et crypt32 corrigées ne sont probablement pas utilisées. Lancez une réparation.",
-    ),
-    (
-        "Certificate errors in the launch log",
-        "Erreurs de certificat dans le journal de lancement",
-        "Les bibliothèques corrigées ne sont probablement pas utilisées. Lancez une réparation.",
-    ),
-    (
-        "Vulkan errors in the launch log",
-        "Erreurs Vulkan dans le journal de lancement",
-        "Vérifiez le pilote de la carte graphique et que Vulkan fonctionne (vulkaninfo).",
-    ),
-    (
-        "The game could not reach the OpenXR runtime",
-        "Le jeu n'a pas trouvé le runtime VR",
-        "Branchez le casque avant de lancer, puis vérifiez que le runtime le voit.",
-    ),
-    (
-        "Proton's container failed to start",
-        "Le conteneur de Proton n'a pas démarré",
-        "La ligne en détail nomme souvent un chemin absent ou une permission manquante.",
-    ),
-    (
-        "yt-dlp cannot start under this Proton",
-        "yt-dlp ne démarre pas avec ce Proton",
-        "Le yt-dlp.exe de Somnium vérifie le nom de son dossier temporaire, que Wine raccourcit : aucune vidéo YouTube ne charge. Utilisez une recette avec le correctif pyinstaller-tempnam (la recette recommandée l'a) : unilux recipe use recommended.",
-    ),
-    (
-        "Somnium refused some video links",
-        "Somnium a refusé des liens vidéo",
-        "Somnium ne lit que les liens des domaines de sa propre liste ; le lecteur reste vide sans erreur. C'est une règle du jeu, pas de Wine : utilisez un lien YouTube ou un hébergeur autorisé par le créateur du monde.",
-    ),
-    (
-        "Some YouTube links could not be extracted",
-        "Certains liens YouTube n'ont pas pu être extraits",
-        "yt-dlp a démarré mais n'a pas pu lire ces liens : vidéos privées, avec limite d'âge, ou YouTube a changé. Essayez une autre vidéo ; si toutes échouent, Somnium doit mettre à jour yt-dlp.",
-    ),
-    (
-        "Freezes in the last session",
-        "Gels pendant la dernière partie",
-        "Des gels irréguliers coïncident souvent avec des chargements : mondes, arrivée d'avatars, vidéos.",
-    ),
-    (
-        "The GPU idles during the slowdowns",
-        "Le GPU est au repos pendant les ralentissements",
-        "Les images sont en retard alors que le GPU ne travaille pas : le thread principal du jeu, le compositeur ou un chargement (avatars, mondes, vidéo) les retient. Beaucoup d'avatars sur un processeur à 6 cœurs, c'est la limite habituelle.",
-    ),
-    (
-        "The GPU clock drops during the slowdowns",
-        "La fréquence du GPU chute pendant les ralentissements",
-        "La gestion d'énergie baisse la fréquence au moment où il faut des images. Utilisez le profil d'alimentation VR (page VR) ou un niveau de performance fixe.",
-    ),
-    (
-        "The GPU is saturated during the slowdowns",
-        "Le GPU est saturé pendant les ralentissements",
-        "Baissez la résolution dans WiVRn ou les graphismes du jeu, ou masquez les avatars lointains.",
-    ),
-    (
-        "Slowdowns in the last session",
-        "Ralentissements pendant la dernière partie",
-        "Ni la charge ni la fréquence du GPU ne les expliquent, ou MangoHud ne les a pas mesurées. Ils viennent en général des chargements sur le thread principal du jeu : mondes, arrivée d'avatars, vidéos.",
-    ),
-];
-
-/// Titles with a value inside: (prefix, suffix, French title with {}, French advice with {}).
-const FR_DYN: &[(&str, &str, &str, &str)] = &[
-    (
-        "Patched files from ",
-        " were replaced",
-        "Les fichiers corrigés de {} ont été remplacés",
-        "Une mise à jour de Proton ou une copie manuelle les a écrasés. Une réparation les remet.",
-    ),
-    (
-        "Patch bundle ",
-        " installed and intact",
-        "Correctifs {} installés et intacts",
-        "",
-    ),
-    (
-        "The catalog has no patch bundle for ",
-        "",
-        "Le catalogue n'a pas de correctifs pour {}",
-        "Passez à un Proton vérifié, ou construisez les correctifs vous-même (Recettes) et testez-les.",
-    ),
-    (
-        "The patch bundle for ",
-        " is untested",
-        "Les correctifs pour {} ne sont pas testés",
-        "Ils ont été construits pour un Proton voisin. Si la connexion ou la vidéo échoue, passez à un Proton vérifié et signalez le résultat.",
-    ),
-    (
-        "python3 is ",
-        ", older than 3.10",
-        "python3 est en version {}, antérieure à 3.10",
-        "umu-run a besoin de la 3.10 ou plus comme python3 dans le PATH. Sur une LTS ancienne, cela passe souvent par une mise à jour de la distribution.",
-    ),
-    (
-        "Somnium Space is running (",
-        " processes)",
-        "Somnium Space est en cours d'exécution ({} processus)",
-        "",
-    ),
-    (
-        "The last session pushed ",
-        " GB to swap",
-        "La dernière partie a envoyé {} Go dans le swap",
-        "Les pages que le jeu réutilise reviennent du disque et l'image les attend : gels au chargement des mondes et des avatars. Activez zram (zram-generator ou le paquet zram de votre distribution) pour garder le swap en RAM compressée, et fermez navigateur et applications lourdes avant de jouer.",
-    ),
-    (
-        "The last session pushed ",
-        " GB to zram",
-        "La dernière partie a envoyé {} Go dans zram",
-        "zram garde le swap peu coûteux, mais le noyau a quand même évincé de la mémoire du jeu. Fermez les applications lourdes avant de jouer ; avec zram, un vm.swappiness entre 100 et 180 évince les pages inactives avant celles du jeu.",
-    ),
-    (
-        "The game freezes every ",
-        " s",
-        "Le jeu se fige toutes les {} s",
-        "Des gels à intervalle fixe viennent d'un minuteur dans le jeu (nettoyage périodique, sondage, tâche réseau ou voix), pas du GPU ni du compositeur. Notez ce que vous faisiez et comparez avec le micro et le chat vocal coupés.",
-    ),
-];
-
 /// Title and advice in the interface language; the engine's English when no translation exists.
 fn localized(f: &Finding) -> (String, Option<String>) {
-    if current() == Lang::En {
-        return (f.title.clone(), f.advice.clone());
+    let key = format!("finding-{}", f.id);
+    match t_named(&format!("{key}-title"), &f.args) {
+        Some(title) => (
+            title,
+            t_named(&format!("{key}-advice"), &f.args).or_else(|| f.advice.clone()),
+        ),
+        None => (f.title.clone(), f.advice.clone()),
     }
-    let keep = |fr: &str| {
-        (!fr.is_empty())
-            .then(|| fr.to_string())
-            .or_else(|| f.advice.clone())
-    };
-    if let Some((_, t, a)) = FR.iter().find(|(en, _, _)| *en == f.title) {
-        return (t.to_string(), keep(a));
-    }
-    for (pre, suf, t, a) in FR_DYN {
-        if let Some(mid) = f.title.strip_prefix(pre).and_then(|r| r.strip_suffix(suf)) {
-            return (t.replacen("{}", mid, 1), keep(&a.replacen("{}", mid, 1)));
-        }
-    }
-    if let Some(p) = f.title.strip_suffix(" is older than Proton 9") {
-        return (
-            format!("{p} est plus ancien que Proton 9"),
-            Some("Proton 8 et antérieurs ne savent pas initialiser la VR. Choisissez Proton 9 ou plus récent.".into()),
-        );
-    }
-    if let Some(d) = f.title.strip_suffix(" is an immutable distribution") {
-        return (
-            format!("{d} est une distribution immuable"),
-            Some("Unilux n'écrit que dans votre dossier personnel, cela devrait fonctionner. Les retours sont bienvenus.".into()),
-        );
-    }
-    (f.title.clone(), f.advice.clone())
 }
 
 fn fix_label(fix: FixId) -> &'static str {
     match fix {
-        FixId::Repair => tr("Repair", "Réparer"),
-        FixId::StopSession => tr("Stop the game", "Arrêter le jeu"),
-        FixId::ClearOpenxrOverride => tr("Use automatic detection", "Détection automatique"),
-        FixId::ClearDownloads => tr("Clear downloads", "Vider les téléchargements"),
+        FixId::Repair => t("diag-repair"),
+        FixId::StopSession => t("diag-stop-game"),
+        FixId::ClearOpenxrOverride => t("diag-use-automatic-detection"),
+        FixId::ClearDownloads => t("diag-clear-downloads"),
     }
 }
 
 fn sev_label(s: Severity) -> &'static str {
     match s {
-        Severity::Error => tr("Problem", "Problème"),
-        Severity::Warn => tr("Worth checking", "À surveiller"),
-        Severity::Info => tr("Info", "Info"),
+        Severity::Error => t("diag-problem"),
+        Severity::Warn => t("diag-worth-checking"),
+        Severity::Info => t("diag-info"),
     }
 }
 
@@ -401,9 +115,9 @@ impl Component for Evidence {
                     .child(
                         label()
                             .text(if shown {
-                                tr("Hide details", "Masquer les détails")
+                                t("diag-hide-details")
                             } else {
-                                tr("Details", "Détails")
+                                t("diag-details")
                             })
                             .font_size(crate::theme::size::SMALL)
                             .color(crate::theme::T.muted),
@@ -484,37 +198,30 @@ fn view(mut ui: Ui) -> impl IntoElement {
             spawn_in_window(run_checks(ui, running));
         })
         .child(if busy {
-            tr("Checking…", "Vérification…")
+            t("diag-checking")
         } else {
-            tr("Check again", "Relancer")
+            t("diag-check-again")
         })
         .into_element();
-    let plural = |n: usize, one: &'static str, many: &'static str| {
+    let plural = |n: usize, one: &str, many: &str| {
         if n == 1 {
-            one.to_string()
+            t(one).to_string()
         } else {
-            fill(many, &[n.to_string()])
+            t_with(many, &[n.to_string()])
         }
     };
     let verdict = if findings.is_none() {
         banner(
             Tone::Neutral,
-            tr("Checking…", "Vérification en cours…"),
-            tr("This takes a few seconds.", "Cela prend quelques secondes."),
+            t("diag-checking-2"),
+            t("diag-takes-few-seconds"),
             Some(rerun),
         )
     } else if errors > 0 {
         banner(
             Tone::Error,
-            plural(
-                errors,
-                tr("One problem to fix", "Un problème à corriger"),
-                tr("{} problems to fix", "{} problèmes à corriger"),
-            ),
-            tr(
-                "Start with these. The game probably cannot start or sign in while they remain.",
-                "Commencez par ceux-là. Le jeu ne démarre ou ne se connecte probablement pas tant qu'ils restent.",
-            ),
+            plural(errors, "diag-one-problem-fix", "diag-problems-fix"),
+            t("diag-start-these-game-probably"),
             Some(rerun),
         )
     } else if warns > 0 {
@@ -522,24 +229,18 @@ fn view(mut ui: Ui) -> impl IntoElement {
             Tone::Warn,
             plural(
                 warns,
-                tr("One thing worth checking", "Un point à surveiller"),
-                tr("{} things worth checking", "{} points à surveiller"),
+                "diag-one-thing-worth-checking",
+                "diag-things-worth-checking",
             ),
-            tr(
-                "Nothing is broken, but these can explain slowdowns or odd behaviour.",
-                "Rien n'est cassé, mais ces points peuvent expliquer des ralentissements ou un comportement étrange.",
-            ),
+            t("diag-nothing-broken-but-these"),
             Some(rerun),
         )
     } else {
         banner(
             Tone::Ok,
-            tr("All good", "Tout est en ordre"),
-            fill(
-                tr(
-                    "{} checks passed: install, system, VR and your last game.",
-                    "{} vérifications réussies : installation, système, VR et dernière partie.",
-                ),
+            t("diag-all-good"),
+            t_with(
+                "diag-checks-passed-install-system",
                 &[CHECKS.len().to_string()],
             ),
             Some(rerun),
@@ -553,18 +254,12 @@ fn view(mut ui: Ui) -> impl IntoElement {
         .collect();
     if vr_attention {
         to_fix.push(row(
-            tr("Your VR headset needs attention", "Le casque VR demande de l'attention"),
-            Some(
-                tr(
-                    "A step is missing between the headset and the game, or a setting costs frames.",
-                    "Il manque une étape entre le casque et le jeu, ou un réglage coûte des images.",
-                )
-                .into(),
-            ),
+            t("diag-vr-headset-needs-attention"),
+            Some(t("diag-step-missing-between-headset").into()),
             Some(
                 Button::new()
                     .on_press(move |_| ui.section.set(Section::Vr))
-                    .child(tr("Open the VR page", "Ouvrir la page VR"))
+                    .child(t("diag-open-vr-page"))
                     .into_element(),
             ),
         ));
@@ -588,9 +283,9 @@ fn view(mut ui: Ui) -> impl IntoElement {
                     .map(|f| f.severity)
                     .max()
                 {
-                    Some(Severity::Error) => chip(tr("Problem", "Problème"), Tone::Error),
-                    Some(Severity::Warn) => chip(tr("Worth checking", "À surveiller"), Tone::Warn),
-                    _ => chip(tr("OK", "OK"), Tone::Ok),
+                    Some(Severity::Error) => chip(t("diag-problem"), Tone::Error),
+                    Some(Severity::Warn) => chip(t("diag-worth-checking"), Tone::Warn),
+                    _ => chip(t("diag-ok"), Tone::Ok),
                 }
             };
             row(name, Some(what.to_string()), Some(chip_el.into_element()))
@@ -599,14 +294,8 @@ fn view(mut ui: Ui) -> impl IntoElement {
 
     let help = vec![
         row(
-            tr("Anonymous bug report", "Rapport de bug anonyme"),
-            Some(
-                tr(
-                    "A JSON file with these results and your setup, without your user name or personal paths. Attach it when you ask for help.",
-                    "Un fichier JSON avec ces résultats et votre configuration, sans nom d'utilisateur ni chemin personnel. À joindre quand vous demandez de l'aide.",
-                )
-                .into(),
-            ),
+            t("diag-anonymous-bug-report"),
+            Some(t("diag-json-file-these-results").into()),
             Some(
                 Button::new()
                     .on_press(move |_| {
@@ -617,34 +306,25 @@ fn view(mut ui: Ui) -> impl IntoElement {
                                 match std::fs::write(&p, r) {
                                     Ok(()) => ui.notice(
                                         Severity::Info,
-                                        fill(
-                                            tr("Report saved: {}", "Rapport enregistré : {}"),
-                                            &[p.display().to_string()],
-                                        ),
+                                        t_with("diag-report-saved", &[p.display().to_string()]),
                                     ),
                                     Err(e) => ui.error.set(Some(e.to_string())),
                                 }
                             }
                         });
                     })
-                    .child(tr("Save the report", "Enregistrer le rapport"))
+                    .child(t("diag-save-report"))
                     .into_element(),
             ),
         ),
         row(
-            tr("Launch logs", "Journaux de lancement"),
-            Some(
-                tr(
-                    "What Proton and the game printed, line by line.",
-                    "Ce que Proton et le jeu ont écrit, ligne par ligne.",
-                )
-                .into(),
-            ),
+            t("diag-launch-logs"),
+            Some(t("diag-what-proton-game-printed").into()),
             Some(
                 Button::new()
                     .flat()
                     .on_press(move |_| ui.section.set(Section::Logs))
-                    .child(tr("Open the logs", "Ouvrir les journaux"))
+                    .child(t("diag-open-logs"))
                     .into_element(),
             ),
         ),
@@ -652,13 +332,13 @@ fn view(mut ui: Ui) -> impl IntoElement {
 
     rect()
         .spacing(space::XL)
-        .child(crate::widgets::page_header(tr("Diagnostics", "Diagnostic"), tr(
-            "When something does not work, start here. Unilux checks the install, the system and your last launch, and fixes what it can.",
-            "Quand quelque chose ne marche pas, commencez ici. Unilux vérifie l'installation, le système et le dernier lancement, et corrige ce qu'il peut.",
-        )))
+        .child(crate::widgets::page_header(
+            t("diag-diagnostics"),
+            t("diag-when-something-does-not"),
+        ))
         .child(verdict)
-        .maybe_child((!to_fix.is_empty()).then(|| group(tr("To fix", "À corriger"), divided(to_fix))))
-        .maybe_child((!infos.is_empty()).then(|| group(tr("For your information", "Pour information"), divided(infos))))
-        .child(group(tr("What was checked", "Ce qui a été vérifié"), divided(checked)))
-        .child(group(tr("Ask for help", "Demander de l'aide"), divided(help)))
+        .maybe_child((!to_fix.is_empty()).then(|| group(t("diag-fix"), divided(to_fix))))
+        .maybe_child((!infos.is_empty()).then(|| group(t("diag-information"), divided(infos))))
+        .child(group(t("diag-what-was-checked"), divided(checked)))
+        .child(group(t("diag-ask-help"), divided(help)))
 }

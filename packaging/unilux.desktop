@@ -2,7 +2,9 @@
 Type=Application
 Name=Unilux
 GenericName=Somnium Space launcher
+GenericName[fr]=Lanceur Somnium Space
 Comment=Install, launch and troubleshoot Somnium Space on Linux
+Comment[fr]=Installer, lancer et dépanner Somnium Space sous Linux
 Exec=unilux-gui
 Icon=unilux
 Terminal=false

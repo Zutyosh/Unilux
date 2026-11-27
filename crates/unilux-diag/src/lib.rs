@@ -3,4 +3,4 @@
 pub mod checks;
 pub mod report;
 
-pub use checks::{Check, DiagContext, Finding, FixId, run_all};
+pub use checks::{Check, DiagContext, FINDING_IDS, Finding, FixId, run_all};

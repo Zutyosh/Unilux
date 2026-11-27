@@ -6,7 +6,7 @@ use unilux_components::ProtonId;
 use unilux_patches::recipe::{DEFAULT_RECIPE, Ingredient, Kind};
 use unilux_service::{PatchSource, Recipe};
 
-use crate::i18n::{fix_summary, fix_title, step, t};
+use crate::i18n::{lookup, t};
 use crate::loader::OrbitLoader;
 use crate::state::Ui;
 use crate::svc;
@@ -89,11 +89,13 @@ impl Flow {
                 .recipe(&self.base)
                 .map(|r| {
                     let name = if r.id == DEFAULT_RECIPE {
-                        crate::i18n::recipe_title(&r.id, &r.title)
+                        lookup(&format!("recipe-{}-title", r.id))
+                            .map(str::to_string)
+                            .unwrap_or_else(|| r.title.clone())
                     } else {
                         r.title
                     };
-                    format!("{name} ({})", t("recipes.fork.suffix"))
+                    format!("{name} ({})", t("recipes-fork-suffix"))
                 })
                 .unwrap_or_default(),
             _ => String::new(),
@@ -181,7 +183,7 @@ fn slug(s: &str) -> String {
 fn recipe_title(name: &str) -> String {
     let n = name.trim();
     if n.is_empty() {
-        t("setup.mine").to_string()
+        t("setup-mine").to_string()
     } else {
         n.to_string()
     }
@@ -208,7 +210,7 @@ fn check_icon() -> impl IntoElement {
 }
 
 fn stepper(current: usize, all_done: bool) -> Element {
-    const KEYS: [&str; 3] = ["setup.step.proton", "setup.step.fixes", "setup.step.build"];
+    const KEYS: [&str; 3] = ["setup-step-proton", "setup-step-fixes", "setup-step-build"];
     let mut line = rect()
         .width(Size::fill())
         .horizontal()
@@ -365,12 +367,12 @@ struct ProtonStep {
 
 fn pick_cell(flow: State<Option<Flow>>, id: ProtonId, selected: bool) -> Element {
     if selected {
-        return chip(t("setup.chosen"), Tone::Accent).into_element();
+        return chip(t("setup-chosen"), Tone::Accent).into_element();
     }
     Button::new()
         .compact()
         .on_press(move |_| edit(flow, |f| f.proton = Some(id.clone())))
-        .child(t("setup.choose"))
+        .child(t("setup-choose"))
         .into_element()
 }
 
@@ -408,11 +410,11 @@ impl Component for ProtonStep {
                     .spacing(space::S)
                     .maybe_child(
                         (id.to_string() == recommended)
-                            .then(|| chip(t("setup.recommended"), Tone::Ok)),
+                            .then(|| chip(t("setup-recommended"), Tone::Ok)),
                     )
                     .maybe_child(
                         p.in_use
-                            .then(|| chip(t("prefs.proton.in_use"), Tone::Neutral)),
+                            .then(|| chip(t("prefs-proton-in_use"), Tone::Neutral)),
                     )
                     .maybe_child(removable.then(|| {
                         Button::new()
@@ -425,7 +427,7 @@ impl Component for ProtonStep {
                                 }
                                 reload(ui);
                             })
-                            .child(t("prefs.proton.remove"))
+                            .child(t("prefs-proton-remove"))
                     }))
                     .child(pick_cell(flow, id, selected))
                     .into_element();
@@ -457,7 +459,7 @@ impl Component for ProtonStep {
                     sub.push_str(&format!("{:.0} MB", r.size as f64 / 1e6));
                 }
                 if r.prerelease {
-                    sub.push_str(&format!(", {}", t("prefs.proton.pre")));
+                    sub.push_str(&format!(", {}", t("prefs-proton-pre")));
                 }
                 let downloading = progress.as_ref().filter(|(task, _, _)| *task == r.id.tag);
                 let selected = chosen.as_ref() == Some(&id);
@@ -468,7 +470,7 @@ impl Component for ProtonStep {
                     .cross_align(Alignment::Center)
                     .maybe_child(
                         (id.to_string() == recommended)
-                            .then(|| chip(t("setup.recommended"), Tone::Ok)),
+                            .then(|| chip(t("setup-recommended"), Tone::Ok)),
                     )
                     .maybe_child(downloading.map(|(_, d, tot)| {
                         rect().width(Size::px(120.)).child(
@@ -479,7 +481,7 @@ impl Component for ProtonStep {
                     }))
                     .maybe_child(
                         (r.installed && downloading.is_none())
-                            .then(|| chip(t("setup.downloaded"), Tone::Neutral)),
+                            .then(|| chip(t("setup-downloaded"), Tone::Neutral)),
                     )
                     .maybe_child((!r.installed && usable && downloading.is_none()).then(|| {
                         Button::new()
@@ -492,7 +494,7 @@ impl Component for ProtonStep {
                                     reload(ui)
                                 })
                             })
-                            .child(t("prefs.proton.download"))
+                            .child(t("prefs-proton-download"))
                     }))
                     .maybe_child(usable.then(|| pick_cell(flow, id.clone(), selected)))
                     .into_element();
@@ -541,7 +543,7 @@ impl Component for ProtonStep {
                     .compact()
                     .flat()
                     .on_press(move |_| ui.load_releases(true))
-                    .child(t("prefs.proton.refresh")),
+                    .child(t("prefs-proton-refresh")),
             );
 
         let hint = chosen.as_ref().map(|id| {
@@ -550,7 +552,7 @@ impl Component for ProtonStep {
                 .horizontal()
                 .cross_align(Alignment::Center)
                 .spacing(space::S)
-                .child(muted(t("setup.picked")))
+                .child(muted(t("setup-picked")))
                 .child(body(tag).font_weight(FontWeight::SEMI_BOLD))
                 .into_element()
         });
@@ -558,9 +560,9 @@ impl Component for ProtonStep {
         rect()
             .width(Size::fill())
             .spacing(space::XL)
-            .child(header("setup.proton.title", "setup.proton.lead"))
+            .child(header("setup-proton-title", "setup-proton-lead"))
             .maybe_child(
-                (!installed.is_empty()).then(|| group(t("prefs.proton.installed"), installed)),
+                (!installed.is_empty()).then(|| group(t("prefs-proton-installed"), installed)),
             )
             .child(
                 rect()
@@ -576,22 +578,22 @@ impl Component for ProtonStep {
                     .center()
                     .child(CircularLoader::new().size(28.))
             } else {
-                group(t("prefs.proton.available"), available)
+                group(t("prefs-proton-available"), available)
             })
             .maybe_child((total > limit).then(|| {
                 Button::new()
                     .flat()
                     .on_press(move |_| show_all.set(true))
-                    .child(format!("{} ({})", t("prefs.proton.more"), total - limit))
+                    .child(format!("{} ({})", t("prefs-proton-more"), total - limit))
             }))
             .child(footer(
                 hint,
                 vec![
-                    secondary(t("recipes.cancel"), move |_| {
+                    secondary(t("cancel"), move |_| {
                         let mut flow = flow;
                         flow.set(None)
                     }),
-                    primary(t("setup.next"), chosen.is_some(), move |_| {
+                    primary(t("setup-next"), chosen.is_some(), move |_| {
                         edit(flow, |f| f.step = Step::Fixes)
                     }),
                 ],
@@ -609,8 +611,8 @@ struct FixesStep {
 
 fn kind_chip(ing: &Ingredient) -> Rect {
     match ing.kind {
-        Kind::Patch => chip(t("recipes.kind.patch"), Tone::Neutral),
-        Kind::Env => chip(t("recipes.kind.env"), Tone::Neutral),
+        Kind::Patch => chip(t("recipes-kind-patch"), Tone::Neutral),
+        Kind::Env => chip(t("recipes-kind-env"), Tone::Neutral),
     }
 }
 
@@ -650,7 +652,9 @@ impl Component for FixesStep {
                     .child(
                         label()
                             .text(if r.builtin {
-                                crate::i18n::recipe_title(&r.id, &r.title)
+                                lookup(&format!("recipe-{}-title", r.id))
+                                    .map(str::to_string)
+                                    .unwrap_or_else(|| r.title.clone())
                             } else {
                                 r.title.clone()
                             })
@@ -679,14 +683,15 @@ impl Component for FixesStep {
                     .as_ref()
                     .is_some_and(|b| b.custom.iter().any(|c| c.id == ing.id));
                 let key = ing.id.clone();
-                let sub = fix_summary(
-                    &ing.id,
-                    &if ing.summary.is_empty() {
-                        ing.id.clone()
-                    } else {
-                        ing.summary.clone()
-                    },
-                );
+                let sub = lookup(&format!("fix-{}-sum", ing.id))
+                    .map(str::to_string)
+                    .unwrap_or_else(|| {
+                        if ing.summary.is_empty() {
+                            ing.id.clone()
+                        } else {
+                            ing.summary.clone()
+                        }
+                    });
                 Button::new()
                     .key(ing.id.clone())
                     .flat()
@@ -712,10 +717,14 @@ impl Component for FixesStep {
                                 rect()
                                     .width(Size::flex(1.))
                                     .spacing(2.)
-                                    .child(body(fix_title(&ing.id, &ing.title)))
+                                    .child(body(
+                                        lookup(&format!("fix-{}-title", ing.id))
+                                            .map(str::to_string)
+                                            .unwrap_or_else(|| ing.title.clone()),
+                                    ))
                                     .child(muted(sub)),
                             )
-                            .maybe_child(is_custom.then(|| chip(t("recipes.custom"), Tone::Warn)))
+                            .maybe_child(is_custom.then(|| chip(t("recipes-custom"), Tone::Warn)))
                             .child(kind_chip(&ing)),
                     )
                     .into_element()
@@ -728,9 +737,9 @@ impl Component for FixesStep {
         };
         let (check_text, check_tone, ok) = match &check {
             Some(Ok(p)) if p.needs_build() => {
-                (t("recipes.check.build").to_string(), Tone::Accent, true)
+                (t("recipes-check-build").to_string(), Tone::Accent, true)
             }
-            Some(Ok(_)) => (t("recipes.check.env").to_string(), Tone::Ok, true),
+            Some(Ok(_)) => (t("recipes-check-env").to_string(), Tone::Ok, true),
             Some(Err(e)) => (e.to_string(), Tone::Error, false),
             None => ("?".into(), Tone::Error, false),
         };
@@ -741,20 +750,20 @@ impl Component for FixesStep {
 
         let proton_line = f.proton.as_ref().map(|id| {
             let (tag, _) = proton_name(id);
-            format!("{} {tag}", t("setup.on"))
+            format!("{} {tag}", t("setup-on"))
         });
 
         rect()
             .width(Size::fill())
             .spacing(space::XL)
             .child(
-                header("setup.fixes.title", "setup.fixes.lead").maybe_child(proton_line.map(muted)),
+                header("setup-fixes-title", "setup-fixes-lead").maybe_child(proton_line.map(muted)),
             )
             .maybe_child((f.intent == Intent::Use).then(|| {
                 rect()
                     .width(Size::fill())
                     .spacing(space::S)
-                    .child(muted(t("setup.start_from")))
+                    .child(muted(t("setup-start_from")))
                     .child(
                         rect()
                             .width(Size::fill())
@@ -763,27 +772,27 @@ impl Component for FixesStep {
                             .children(starts),
                     )
             }))
-            .child(group(t("recipes.ingredients"), rows))
+            .child(group(t("recipes-ingredients"), rows))
             .maybe_child((modified && f.intent != Intent::Edit).then(|| {
                 rect()
                     .width(Size::fill())
                     .spacing(space::XS)
-                    .child(body(t("setup.name")).font_weight(FontWeight::SEMI_BOLD))
-                    .child(muted(t("setup.name.sub")))
+                    .child(body(t("setup-name")).font_weight(FontWeight::SEMI_BOLD))
+                    .child(muted(t("setup-name-sub")))
                     .child(
                         Input::new(name)
-                            .placeholder(t("setup.mine"))
+                            .placeholder(t("setup-mine"))
                             .width(Size::fill()),
                     )
             }))
-            .maybe_child(custom.then(|| muted(t("recipes.custom.warn"))))
+            .maybe_child(custom.then(|| muted(t("recipes-custom-warn"))))
             .child(footer(
                 Some(chip(check_text, check_tone).into_element()),
                 vec![
-                    secondary(t("setup.back"), move |_| {
+                    secondary(t("setup-back"), move |_| {
                         edit(flow, |f| f.step = Step::Proton)
                     }),
-                    primary(t("setup.next"), ok, move |_| {
+                    primary(t("setup-next"), ok, move |_| {
                         edit(flow, |f| {
                             f.step = Step::Build;
                             f.phase = Phase::Review;
@@ -807,13 +816,13 @@ struct BuildStep {
 fn source_chip(s: PatchSource, can_build: bool) -> Rect {
     match s {
         PatchSource::Published(unilux_patches::TargetStatus::Verified) => {
-            chip(t("prefs.patch.verified"), Tone::Ok)
+            chip(t("prefs-patch-verified"), Tone::Ok)
         }
-        PatchSource::Published(_) => chip(t("prefs.patch.untested"), Tone::Warn),
-        PatchSource::Built => chip(t("prefs.patch.built"), Tone::Ok),
-        PatchSource::NotNeeded => chip(t("prefs.patch.not_needed"), Tone::Ok),
-        PatchSource::MustBuild if can_build => chip(t("prefs.patch.on_use"), Tone::Neutral),
-        PatchSource::MustBuild => chip(t("prefs.patch.need_builder"), Tone::Error),
+        PatchSource::Published(_) => chip(t("prefs-patch-untested"), Tone::Warn),
+        PatchSource::Built => chip(t("prefs-patch-built"), Tone::Ok),
+        PatchSource::NotNeeded => chip(t("prefs-patch-not_needed"), Tone::Ok),
+        PatchSource::MustBuild if can_build => chip(t("prefs-patch-on_use"), Tone::Neutral),
+        PatchSource::MustBuild => chip(t("prefs-patch-need_builder"), Tone::Error),
     }
 }
 
@@ -905,7 +914,11 @@ impl Component for BuildStep {
                                 l.ingredients
                                     .iter()
                                     .find(|i| i.id == *id)
-                                    .map(|i| fix_title(&i.id, &i.title))
+                                    .map(|i| {
+                                        lookup(&format!("fix-{}-title", i.id))
+                                            .map(str::to_string)
+                                            .unwrap_or_else(|| i.title.clone())
+                                    })
                                     .unwrap_or_else(|| id.clone())
                             })
                             .collect::<Vec<_>>()
@@ -918,34 +931,34 @@ impl Component for BuildStep {
                     .unwrap_or_else(|| f.base.clone());
                 let rows = vec![
                     row(
-                        t("setup.sum.proton"),
+                        t("setup-sum-proton"),
                         Some(provider),
                         Some(body(tag).into_element()),
                     ),
                     row(
-                        t("setup.sum.recipe"),
+                        t("setup-sum-recipe"),
                         None,
                         Some(body(recipe_label).into_element()),
                     ),
                     row(
-                        t("setup.sum.fixes"),
+                        t("setup-sum-fixes"),
                         Some(if fixes.is_empty() {
-                            t("stat.none").to_string()
+                            t("stat-none").to_string()
                         } else {
                             fixes
                         }),
                         None,
                     ),
                     row(
-                        t("setup.sum.patches"),
+                        t("setup-sum-patches"),
                         None,
                         source.map(|s| source_chip(s, can_build).into_element()),
                     ),
                 ];
                 let hint = blocked.then(|| {
                     let text = match svc().podman_install_hint() {
-                        Some(cmd) => format!("{} {cmd}", t("prefs.patches.build.missing.cmd")),
-                        None => t("prefs.patches.build.missing").to_string(),
+                        Some(cmd) => format!("{} {cmd}", t("prefs-patches-build-missing-cmd")),
+                        None => t("prefs-patches-build-missing").to_string(),
                     };
                     muted(text).into_element()
                 });
@@ -953,19 +966,19 @@ impl Component for BuildStep {
                 rect()
                     .width(Size::fill())
                     .spacing(space::XL)
-                    .child(header("setup.build.title", "setup.build.lead"))
-                    .child(group(t("setup.sum"), rows))
+                    .child(header("setup-build-title", "setup-build-lead"))
+                    .child(group(t("setup-sum"), rows))
                     .child(footer(
                         hint,
                         vec![
-                            secondary(t("setup.back"), move |_| {
+                            secondary(t("setup-back"), move |_| {
                                 edit(flow, |f| f.step = Step::Fixes)
                             }),
                             primary(
                                 if must_build {
-                                    t("setup.apply.build")
+                                    t("setup-apply-build")
                                 } else {
-                                    t("setup.apply")
+                                    t("setup-apply")
                                 },
                                 !blocked && !busy && plan.is_some(),
                                 move |_| apply(ui, flow, name.read().clone()),
@@ -979,8 +992,12 @@ impl Component for BuildStep {
                     .step
                     .read()
                     .as_ref()
-                    .map(|s| step(s))
-                    .unwrap_or_else(|| t("setup.running.sub").to_string());
+                    .map(|s| {
+                        lookup(&format!("step-{s}"))
+                            .map(str::to_string)
+                            .unwrap_or_else(|| s.replace('_', " "))
+                    })
+                    .unwrap_or_else(|| t("setup-running-sub").to_string());
                 let bar = ui
                     .progress
                     .read()
@@ -992,7 +1009,7 @@ impl Component for BuildStep {
                     .cross_align(Alignment::Center)
                     .spacing(space::L)
                     .child(OrbitLoader)
-                    .child(title(t("setup.running")))
+                    .child(title(t("setup-running")))
                     .child(muted(step_line))
                     .maybe_child(bar.map(|p| rect().width(Size::px(360.)).child(progress_bar(p))))
                     .into_element()
@@ -1002,15 +1019,15 @@ impl Component for BuildStep {
                 .padding((space::XXL, 0.))
                 .cross_align(Alignment::Center)
                 .spacing(space::L)
-                .child(chip(t("setup.done"), Tone::Ok))
+                .child(chip(t("setup-done"), Tone::Ok))
                 .child(title(tag))
-                .child(muted(t("setup.done.sub")))
-                .child(primary(t("setup.finish"), true, move |_| flow.set(None)))
+                .child(muted(t("setup-done-sub")))
+                .child(primary(t("setup-finish"), true, move |_| flow.set(None)))
                 .into_element(),
             Phase::Failed(msg) => rect()
                 .width(Size::fill())
                 .spacing(space::L)
-                .child(header("setup.failed", "setup.failed.lead"))
+                .child(header("setup-failed", "setup-failed-lead"))
                 .child(
                     rect()
                         .width(Size::fill())
@@ -1023,10 +1040,10 @@ impl Component for BuildStep {
                 .child(footer(
                     None,
                     vec![
-                        secondary(t("setup.back"), move |_| {
+                        secondary(t("setup-back"), move |_| {
                             edit(flow, |f| f.phase = Phase::Review)
                         }),
-                        primary(t("setup.retry"), true, move |_| {
+                        primary(t("setup-retry"), true, move |_| {
                             apply(ui, flow, name.read().clone())
                         }),
                     ],

@@ -5,7 +5,7 @@ use std::time::Duration;
 use freya::prelude::*;
 use unilux_system::{OpenVrLayer, RuntimeKind, VrStatus, VrTuning};
 
-use crate::i18n::{fill, tr};
+use crate::i18n::{t, t_with};
 use crate::state::{Section, Ui};
 use crate::svc;
 use crate::theme::{T, alpha, size, space};
@@ -94,109 +94,65 @@ fn chain(v: &VrStatus) -> Vec<Step> {
         .join(", ");
     let broken = v.active.as_ref().is_some_and(|r| !r.library.exists());
 
-    let what1 = tr(
-        "The program that talks to the headset. WiVRn suits standalone headsets (Quest, Pico). Monado, through Envision, suits wired ones.",
-        "Le programme qui parle au casque. WiVRn convient aux casques autonomes (Quest, Pico). Monado, via Envision, aux casques filaires.",
-    );
+    let what1 = t("vr-program-talks-headset-wivrn");
     let mut s1 = match (&name, v.installed.is_empty()) {
-        (Some(n), _) if broken => Step::new(tr("VR runtime", "Runtime VR"), what1, St::Todo, tr("Broken", "Cassé"))
+        (Some(n), _) if broken => Step::new(t("vr-vr-runtime"), what1, St::Todo, t("vr-broken"))
             .value(n.clone())
-            .todo(tr(
-                "It points to a file that no longer exists. Restart or reinstall it.",
-                "Il pointe vers un fichier qui n'existe plus. Relancez-le ou réinstallez-le.",
-            )),
-        (Some(n), _) => Step::new(tr("VR runtime", "Runtime VR"), what1, St::Ok, tr("Active", "Actif")).value(n.clone()),
-        (None, true) => Step::new(tr("VR runtime", "Runtime VR"), what1, St::Todo, tr("Missing", "Absent")).todo(tr(
-            "Install WiVRn for a standalone headset, or Monado through Envision for a wired one.",
-            "Installez WiVRn pour un casque autonome, ou Monado via Envision pour un casque filaire.",
-        )),
-        (None, false) => Step::new(tr("VR runtime", "Runtime VR"), what1, St::Todo, tr("Inactive", "Inactif"))
+            .todo(t("vr-points-file-no-longer")),
+        (Some(n), _) => {
+            Step::new(t("vr-vr-runtime"), what1, St::Ok, t("vr-active")).value(n.clone())
+        }
+        (None, true) => Step::new(t("vr-vr-runtime"), what1, St::Todo, t("vr-missing"))
+            .todo(t("vr-install-wivrn-standalone-headset")),
+        (None, false) => Step::new(t("vr-vr-runtime"), what1, St::Todo, t("vr-inactive"))
             .value(installed.clone())
-            .todo(fill(
-                tr(
-                    "Start {}, then connect the headset. A runtime only becomes active once the headset connects.",
-                    "Démarrez {}, puis connectez le casque. Un runtime n'est actif qu'une fois le casque connecté.",
-                ),
+            .todo(t_with(
+                "vr-start-then-connect-headset",
                 std::slice::from_ref(&installed),
             )),
     };
     if kind == Some(RuntimeKind::SteamVr) {
-        s1 = s1.note(tr(
-            "Valve only ships SteamVR as a development release on Linux. WiVRn or Monado are the usual choice.",
-            "Valve ne publie SteamVR sous Linux qu'en version de développement. WiVRn ou Monado sont le choix habituel.",
-        ));
+        s1 = s1.note(t("vr-valve-only-ships-steamvr"));
     }
 
-    let what2 = tr(
-        "It has to be running while you play: it sends the images to the headset.",
-        "Il doit tourner pendant que vous jouez : c'est lui qui envoie l'image au casque.",
-    );
+    let what2 = t("vr-has-running-while-play");
     let s2 = match (&name, v.service_running) {
-        (None, _) => Step::new(
-            tr("Runtime service", "Service du runtime"),
-            what2,
-            St::Wait,
-            tr("Waiting", "En attente"),
-        ),
-        (Some(_), true) => Step::new(
-            tr("Runtime service", "Service du runtime"),
-            what2,
-            St::Ok,
-            tr("Running", "En cours"),
-        ),
-        (Some(n), false) => Step::new(
-            tr("Runtime service", "Service du runtime"),
-            what2,
-            St::Todo,
-            tr("Stopped", "Arrêté"),
-        )
-        .todo(fill(
-            tr(
-                "Start {}, then connect the headset.",
-                "Démarrez {}, puis connectez le casque.",
-            ),
-            std::slice::from_ref(n),
-        )),
+        (None, _) => Step::new(t("vr-runtime-service"), what2, St::Wait, t("vr-waiting")),
+        (Some(_), true) => Step::new(t("vr-runtime-service"), what2, St::Ok, t("vr-running")),
+        (Some(n), false) => Step::new(t("vr-runtime-service"), what2, St::Todo, t("vr-stopped"))
+            .todo(t_with(
+                "vr-start-then-connect-headset-2",
+                std::slice::from_ref(n),
+            )),
     };
 
-    let what3 = tr(
-        "Somnium speaks OpenVR. This layer translates it for your OpenXR runtime. Without it the game starts without VR.",
-        "Somnium parle OpenVR. Cette couche le traduit pour votre runtime OpenXR. Sans elle, le jeu démarre sans VR.",
-    );
+    let what3 = t("vr-somnium-speaks-openvr-layer");
     let needs = matches!(
         kind,
         Some(RuntimeKind::WiVRn | RuntimeKind::Monado | RuntimeKind::Envision)
     );
-    let n3 = tr("OpenVR bridge", "Passerelle OpenVR");
+    let n3 = t("vr-openvr-bridge");
     let s3 = if kind.is_none() {
-        Step::new(n3, what3, St::Wait, tr("Waiting", "En attente"))
+        Step::new(n3, what3, St::Wait, t("vr-waiting"))
     } else if !needs {
-        Step::new(n3, what3, St::Wait, tr("Not needed", "Inutile")).value(tr(
-            "Your runtime speaks OpenVR itself.",
-            "Votre runtime parle OpenVR lui-même.",
-        ))
+        Step::new(n3, what3, St::Wait, t("vr-not-needed"))
+            .value(t("vr-runtime-speaks-openvr-itself"))
     } else {
         match &v.openvr {
-            None => Step::new(n3, what3, St::Todo, tr("Missing", "Absente")).todo(tr(
-                "Install xrizer (or OpenComposite) for your runtime.",
-                "Installez xrizer (ou OpenComposite) pour votre runtime.",
-            )),
-            Some(o) if !o.exists => Step::new(n3, what3, St::Todo, tr("Broken", "Cassée"))
+            None => Step::new(n3, what3, St::Todo, t("vr-missing-2"))
+                .todo(t("vr-install-xrizer-opencomposite-runtime")),
+            Some(o) if !o.exists => Step::new(n3, what3, St::Todo, t("vr-broken-2"))
                 .value(layer_name(o.layer))
-                .todo(fill(
-                    tr(
-                        "The registered file {} does not exist. Reinstall it.",
-                        "Le fichier déclaré {} n'existe pas. Réinstallez-la.",
-                    ),
+                .todo(t_with(
+                    "vr-registered-file-does-not",
                     &[o.path.display().to_string()],
                 )),
-            Some(o) if o.layer == OpenVrLayer::SteamVr => Step::new(n3, what3, St::Todo, tr("Wrong target", "Mal réglée"))
-                .value("SteamVR")
-                .todo(tr(
-                    "OpenVR still points at SteamVR. Point it at xrizer; the WiVRn and Envision settings offer it.",
-                    "OpenVR pointe encore vers SteamVR. Pointez-le vers xrizer ; les réglages de WiVRn et d'Envision le proposent.",
-                )),
-            Some(o) => Step::new(n3, what3, St::Ok, tr("In place", "En place")).value(layer_name(o.layer)),
+            Some(o) if o.layer == OpenVrLayer::SteamVr => {
+                Step::new(n3, what3, St::Todo, t("vr-wrong-target"))
+                    .value("SteamVR")
+                    .todo(t("vr-openvr-still-points-steamvr"))
+            }
+            Some(o) => Step::new(n3, what3, St::Ok, t("vr-place")).value(layer_name(o.layer)),
         }
     };
     vec![s1, s2, s3]
@@ -206,47 +162,27 @@ fn chain(v: &VrStatus) -> Vec<Step> {
 fn tuning(t: &VrTuning) -> Vec<Step> {
     let mut out = Vec::new();
     if let Some(c) = &t.compositor {
-        let name = tr("Compositor priority", "Priorité du compositeur");
-        let what = fill(
-            tr(
-                "When the CPU is busy, {} has to keep its deadline. If it cannot, the headset rate halves for a while (90 to 45 Hz).",
-                "Quand le processeur est chargé, {} doit tenir son échéance. Sinon la fréquence du casque est divisée par deux un moment (90 à 45 Hz).",
-            ),
-            std::slice::from_ref(&c.name),
-        );
+        let name = crate::i18n::t("vr-compositor-priority");
+        let what = t_with("vr-when-cpu-busy-has", std::slice::from_ref(&c.name));
         out.push(match c.realtime {
-            Some(true) => Step::new(name, what, St::Ok, tr("OK", "OK")),
-            Some(false) => Step::new(name, what, St::Todo, tr("To fix", "À régler"))
-                .todo(tr(
-                    "Allow it once, then restart it. A package update removes the permission.",
-                    "Autorisez-le une fois, puis relancez-le. Une mise à jour du paquet retire cette permission.",
-                ))
+            Some(true) => Step::new(name, what, St::Ok, crate::i18n::t("vr-ok")),
+            Some(false) => Step::new(name, what, St::Todo, crate::i18n::t("vr-fix"))
+                .todo(crate::i18n::t("vr-allow-once-then-restart"))
                 .cmd(format!("sudo setcap CAP_SYS_NICE=+ep {}", c.path.display())),
-            None => Step::new(name, what, St::Wait, tr("Unknown", "Inconnu")).todo(tr(
-                "getcap is not installed, so Unilux cannot tell.",
-                "getcap n'est pas installé, Unilux ne peut pas le savoir.",
-            )),
+            None => Step::new(name, what, St::Wait, crate::i18n::t("vr-unknown"))
+                .todo(crate::i18n::t("vr-getcap-not-installed-so")),
         });
     }
     for p in &t.amd_power {
         let Some(idx) = p.vr_index else { continue };
-        let name = tr("AMD GPU power profile", "Profil d'alimentation du GPU AMD");
-        let what = tr(
-            "VR load comes in short bursts. The default profile lets the clocks fall between them, so some frames arrive late. SteamVR switches profile itself; WiVRn and Monado do not.",
-            "La charge VR arrive par rafales. Le profil par défaut laisse les fréquences retomber entre deux, donc certaines images arrivent en retard. SteamVR change de profil tout seul, pas WiVRn ni Monado.",
-        );
+        let name = crate::i18n::t("vr-amd-gpu-power-profile");
+        let what = crate::i18n::t("vr-vr-load-comes-short");
         out.push(if p.active == "VR" {
-            Step::new(name, what, St::Ok, tr("VR profile", "Profil VR"))
+            Step::new(name, what, St::Ok, crate::i18n::t("vr-vr-profile"))
         } else {
-            Step::new(name, what, St::Todo, tr("To fix", "À régler"))
-                .value(fill(
-                    tr("Active profile: {}", "Profil actif : {}"),
-                    std::slice::from_ref(&p.active),
-                ))
-                .todo(tr(
-                    "Lasts until reboot. To keep it, set it in LACT or CoreCtrl.",
-                    "Dure jusqu'au redémarrage. Pour le garder, réglez-le dans LACT ou CoreCtrl.",
-                ))
+            Step::new(name, what, St::Todo, crate::i18n::t("vr-fix"))
+                .value(t_with("vr-active-profile", std::slice::from_ref(&p.active)))
+                .todo(crate::i18n::t("vr-lasts-until-reboot-keep"))
                 .cmd(format!(
                     "echo {idx} | sudo tee /sys/class/drm/{}/device/pp_power_profile_mode",
                     p.card
@@ -256,13 +192,10 @@ fn tuning(t: &VrTuning) -> Vec<Step> {
     if !t.overlays.is_empty() {
         out.push(
             Step::new(
-                tr("XR overlay", "Surcouche XR"),
-                tr(
-                    "An overlay is a second client of the compositor and takes focus from the game when it shows. If slowdowns line up with it, close it to compare.",
-                    "Une surcouche est un second client du compositeur et lui prend le focus quand elle s'affiche. Si les ralentissements coïncident, fermez-la pour comparer.",
-                ),
+                crate::i18n::t("vr-xr-overlay"),
+                crate::i18n::t("vr-overlay-second-client-compositor"),
                 St::Wait,
-                tr("Running", "Active"),
+                crate::i18n::t("vr-running-2"),
             )
             .value(t.overlays.join(", ")),
         );
@@ -350,15 +283,9 @@ fn view(mut ui: Ui) -> impl IntoElement {
         }
     });
     let perf_sub = if svc().performance_wrapper().is_some() {
-        tr(
-            "CachyOS's game-performance keeps the CPU at full speed until Somnium exits, and the shader cache grows to 12 GB so worlds do not recompile.",
-            "game-performance de CachyOS garde le processeur à pleine vitesse jusqu'à la fermeture de Somnium, et le cache de shaders passe à 12 Go pour ne pas tout recompiler à chaque monde.",
-        )
+        t("vr-cachyos-s-game-performance")
     } else {
-        tr(
-            "The shader cache grows to 12 GB so worlds do not recompile. On CachyOS, game-performance (cachyos-settings) also keeps the CPU at full speed.",
-            "Le cache de shaders passe à 12 Go pour ne pas tout recompiler à chaque monde. Sur CachyOS, game-performance (cachyos-settings) garde aussi le processeur à pleine vitesse.",
-        )
+        t("vr-shader-cache-grows-12")
     };
     // The runtime comes and goes while the user starts WiVRn: follow it.
     use_future(move || async move {
@@ -387,44 +314,25 @@ fn view(mut ui: Ui) -> impl IntoElement {
             let n = *tick.peek();
             tick.set(n.wrapping_add(1));
         })
-        .child(tr("Check again", "Revérifier"))
+        .child(t("vr-check-again"))
         .into_element();
     let verdict = if ready {
         banner(
             Tone::Ok,
-            tr("Ready for VR", "Prêt pour la VR"),
-            fill(
-                tr(
-                    "{} is running and the game will find the headset through it.",
-                    "{} tourne et le jeu y trouvera le casque.",
-                ),
-                &[name],
-            ),
+            t("vr-ready-vr"),
+            t_with("vr-running-game-will-find", &[name]),
             Some(recheck),
         )
     } else {
         let head = if todo == 1 {
-            tr(
-                "One step to fix before VR",
-                "Une étape à régler avant la VR",
-            )
-            .to_string()
+            t("vr-one-step-fix-before").to_string()
         } else {
-            fill(
-                tr(
-                    "{} steps to fix before VR",
-                    "{} étapes à régler avant la VR",
-                ),
-                &[todo.max(1).to_string()],
-            )
+            t_with("vr-steps-fix-before-vr", &[todo.max(1).to_string()])
         };
         banner(
             Tone::Warn,
             head,
-            tr(
-                "Until then the game starts on the desktop, or waits for the headset if the option below is on.",
-                "D'ici là, le jeu démarre sur le bureau, ou attend le casque si l'option plus bas est activée.",
-            ),
+            t("vr-until-then-game-starts"),
             Some(recheck),
         )
     };
@@ -441,13 +349,10 @@ fn view(mut ui: Ui) -> impl IntoElement {
     let mut tune_steps = tuning(&t);
     if tune_steps.is_empty() {
         tune_steps.push(Step::new(
-            tr("Nothing to report", "Rien à signaler"),
-            tr(
-                "No compositor, AMD power profile or overlay that could cost frames was found.",
-                "Aucun compositeur, profil d'alimentation AMD ou surcouche susceptible de coûter des images n'a été trouvé.",
-            ),
+            crate::i18n::t("vr-nothing-report"),
+            crate::i18n::t("vr-no-compositor-amd-power"),
             St::Ok,
-            tr("OK", "OK"),
+            crate::i18n::t("vr-ok"),
         ));
     }
     let tune_rows = divided(tune_steps.iter().map(|s| step_row(None, s)).collect());
@@ -455,19 +360,19 @@ fn view(mut ui: Ui) -> impl IntoElement {
     let mut details = Vec::new();
     if let Some(r) = &v.active {
         details.push(crate::widgets::row(
-            tr("Runtime manifest", "Manifeste du runtime"),
+            crate::i18n::t("vr-runtime-manifest"),
             Some(r.manifest.display().to_string()),
             None,
         ));
         details.push(crate::widgets::row(
-            tr("Runtime library", "Bibliothèque du runtime"),
+            crate::i18n::t("vr-runtime-library"),
             Some(r.library.display().to_string()),
             None,
         ));
     }
     if let Some(o) = &v.openvr {
         details.push(crate::widgets::row(
-            tr("OpenVR registration", "Déclaration OpenVR"),
+            crate::i18n::t("vr-openvr-registration"),
             Some(o.path.display().to_string()),
             None,
         ));
@@ -475,57 +380,43 @@ fn view(mut ui: Ui) -> impl IntoElement {
 
     rect()
         .spacing(space::XL)
-        .child(crate::widgets::page_header(tr("VR headset", "Casque VR"), tr(
-            "Somnium Space is played with a VR headset. This page checks that the path from headset to game is complete. It starts nothing.",
-            "Somnium Space se joue avec un casque VR. Cette page vérifie que le chemin du casque au jeu est complet. Elle ne lance rien.",
-        )))
+        .child(crate::widgets::page_header(
+            crate::i18n::t("vr-vr-headset"),
+            crate::i18n::t("vr-somnium-space-played-vr"),
+        ))
         .child(verdict)
+        .child(group(crate::i18n::t("vr-headset-game"), chain_rows))
         .child(group(
-            tr("From the headset to the game", "Du casque au jeu"),
-            chain_rows,
-        ))
-        .child(group(
-            tr("At launch", "Au lancement"),
-            vec![crate::widgets::row(
-                tr("Wait for the headset", "Attendre le casque"),
-                Some(
-                    tr(
-                        "If the runtime is not ready at launch, hold the game until it is instead of starting on the desktop.",
-                        "Si le runtime n'est pas prêt au lancement, le jeu patiente au lieu de démarrer sur le bureau.",
-                    )
-                    .into(),
+            crate::i18n::t("vr-launch"),
+            vec![
+                crate::widgets::row(
+                    crate::i18n::t("vr-wait-headset"),
+                    Some(crate::i18n::t("vr-if-runtime-not-ready").into()),
+                    Some(Switch::new(wait_setter).into_element()),
                 ),
-                Some(Switch::new(wait_setter).into_element()),
-            ), crate::widgets::row(
-                tr("Performance mode", "Mode performance"),
-                Some(perf_sub.into()),
-                Some(Switch::new(perf_setter).into_element()),
-            )],
-        ))
-        .child(group(
-            tr("For smooth frames", "Pour une image fluide"),
-            tune_rows,
-        ))
-        .child(group(
-            tr("What happened in game", "Ce qui s'est passé en jeu"),
-            vec![crate::widgets::row(
-                tr("Frame rate of your sessions", "Fluidité de vos parties"),
-                Some(
-                    tr(
-                        "Each game is measured with MangoHud: curve, slowdowns, freezes and their likely cause.",
-                        "Chaque partie est mesurée avec MangoHud : courbe, ralentissements, gels et cause probable.",
-                    )
-                    .into(),
+                crate::widgets::row(
+                    crate::i18n::t("vr-performance-mode"),
+                    Some(perf_sub.into()),
+                    Some(Switch::new(perf_setter).into_element()),
                 ),
+            ],
+        ))
+        .child(group(crate::i18n::t("vr-smooth-frames"), tune_rows))
+        .child(group(
+            crate::i18n::t("vr-what-happened-game"),
+            vec![crate::widgets::row(
+                crate::i18n::t("vr-frame-rate-sessions"),
+                Some(crate::i18n::t("vr-each-game-measured-mangohud").into()),
                 Some(
                     Button::new()
                         .on_press(move |_| ui.section.set(Section::Recipes))
-                        .child(tr("Open sessions", "Voir les sessions"))
+                        .child(crate::i18n::t("vr-open-sessions"))
                         .into_element(),
                 ),
             )],
         ))
-        .maybe_child((!details.is_empty()).then(|| {
-            group(tr("Technical details", "Détails techniques"), divided(details))
-        }))
+        .maybe_child(
+            (!details.is_empty())
+                .then(|| group(crate::i18n::t("vr-technical-details"), divided(details))),
+        )
 }
