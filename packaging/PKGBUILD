@@ -30,7 +30,7 @@ package() {
     install -Dm755 target/release/unilux-gui "$pkgdir/usr/bin/unilux-gui"
     install -Dm644 packaging/unilux.desktop "$pkgdir/usr/share/applications/unilux.desktop"
     install -Dm644 assets/unilux-256.png "$pkgdir/usr/share/icons/hicolor/256x256/apps/unilux.png"
-    install -Dm644 assets/unilux-logo.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/unilux.svg"
+    install -Dm644 assets/unilux-512.png "$pkgdir/usr/share/icons/hicolor/512x512/apps/unilux.png"
     install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
     install -Dm644 patches/LICENSE "$pkgdir/usr/share/licenses/$pkgname/PATCHES-LGPL"
 }

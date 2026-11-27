@@ -322,6 +322,8 @@ diag-open-logs = {""}
 diag-open-vr-page = {""}
 diag-problem = {""}
 # Variables: $count
+diag-passed-count = {""}
+# Variables: $count
 diag-problems-fix = {""}
 diag-repair = {""}
 diag-report = {""}
@@ -350,12 +352,8 @@ events-code = {""}
 events-code-sent = {""}
 events-code-sent-sms = {""}
 events-confirm = {""}
-# Variables: $days, $hours
-events-countdown-days = {""}
 # Variables: $hours, $minutes
 events-countdown-hours = {""}
-# Variables: $minutes
-events-countdown-minutes = {""}
 events-e-mail-user-name = {""}
 events-enter-6-digit-code = {""}
 events-enter-one-backup-codes = {""}
@@ -363,27 +361,15 @@ events-enter-one-backup-codes = {""}
 events-get-code-sms = {""}
 events-get-code-sms-no-number = {""}
 # Variables: $count
-events-going = {""}
-# Variables: $host
-events-hosted = {""}
-events-no-event-planned-now = {""}
-events-now = {""}
-# Variables: $count
 events-online = {""}
 events-optional-unlocks-events-main = {""}
 events-password = {""}
-# Variables: $start, $end
-events-range = {""}
 events-send-again = {""}
 events-send-sms = {""}
 events-sign = {""}
 events-sign-out = {""}
-events-sign-somnium-space-account = {""}
 events-signed-unilux-keeps-only = {""}
 events-signing = {""}
-events-somnium-events = {""}
-# Variables: $time
-events-starts-in = {""}
 events-verification-code = {""}
 # Variables: $profile, $file
 finding-amd-power-profile-advice = {""}
@@ -522,7 +508,15 @@ play-running = {""}
 play-stop = {""}
 play-waiting = {""}
 prefs-agents = {""}
-prefs-diagnostics = {""}
+home-log-ready = {""}
+home-log-service-off = {""}
+home-log-no-runtime = {""}
+home-log-missing = {""}
+nav-game = {""}
+nav-performance = {""}
+nav-health = {""}
+nav-preferences = {""}
+perf-lead = {""}
 prefs-general = {""}
 prefs-lang = {""}
 prefs-lang-auto = {""}
@@ -562,7 +556,6 @@ prefs-proton-pre = {""}
 prefs-proton-refresh = {""}
 prefs-proton-remove = {""}
 prefs-proton-use = {""}
-prefs-recipes = {""}
 prefs-repair = {""}
 prefs-repair-sub = {""}
 prefs-somnium-space-account = {""}
@@ -665,7 +658,6 @@ recipes-stat-tested = {""}
 recipes-stat-videos = {""}
 recipes-tab-community = {""}
 recipes-tab-mine = {""}
-recipes-tab-sessions = {""}
 recipes-tab-setup = {""}
 recipes-videos = {""}
 recipes-worlds = {""}
@@ -791,9 +783,7 @@ stat-intact = {""}
 stat-none = {""}
 stat-not_ready = {""}
 stat-patches = {""}
-stat-proton = {""}
 stat-ready = {""}
-stat-vr = {""}
 step-catalog = {""}
 step-check_deps = {""}
 step-desktop_entry = {""}

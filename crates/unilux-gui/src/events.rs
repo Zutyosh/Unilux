@@ -1,17 +1,14 @@
 //! Somnium Space's live side on the main screen: players online, the next
 //! events, and the optional sign-in that unlocks them.
 
-use chrono::{Local, TimeZone};
 use freya::prelude::*;
-use unilux_service::{Account, LoginStep, TwoFactor, TwoFactorMethod, UpcomingEvent};
+use unilux_service::{Account, LoginStep, TwoFactor, TwoFactorMethod};
 
-use crate::i18n::{DateStyle, t, t_args, t_date, t_named};
-use crate::state::{Screen, Section, Ui};
+use crate::i18n::{t, t_args};
+use crate::state::Ui;
 use crate::svc;
-use crate::theme::{RADIUS_CONTROL, RADIUS_PILL, T, alpha, glass, size, space};
-use crate::widgets::{Tone, body, dot, glass_panel, link, muted, pill, title};
-
-const CARD_W: f32 = 420.;
+use crate::theme::{RADIUS_CONTROL, RADIUS_PILL, T, alpha, size, space};
+use crate::widgets::{Tone, body, dot, link, muted, pill};
 
 /// Top bar: how many people are in Somnium right now.
 pub fn online_badge(ui: Ui) -> Option<Element> {
@@ -21,9 +18,6 @@ pub fn online_badge(ui: Ui) -> Option<Element> {
             .horizontal()
             .cross_align(Alignment::Center)
             .spacing(space::S)
-            .padding((6., 14.))
-            .corner_radius(RADIUS_PILL)
-            .background(glass())
             .child(dot(if o.current > 0 {
                 Tone::Ok
             } else {
@@ -34,194 +28,10 @@ pub fn online_badge(ui: Ui) -> Option<Element> {
                     .text(t_args("events-online", &[("count", o.current.to_string())]))
                     .font_size(size::SMALL)
                     .font_weight(FontWeight::MEDIUM)
-                    .color(T.text),
+                    .color(T.muted),
             )
             .into_element(),
     )
-}
-
-/// Right side of the main screen: the next event large, two more below.
-/// Signed out, a short invitation to sign in instead.
-pub fn events_panel(mut ui: Ui) -> Element {
-    if ui.account.read().is_none() {
-        return glass_panel()
-            .width(Size::px(CARD_W))
-            .spacing(space::S)
-            .padding(space::XL)
-            .child(title(t("events-somnium-events")).font_size(size::LEAD))
-            .child(muted(t("events-sign-somnium-space-account")))
-            .child(
-                rect().padding((space::S, 0., 0., 0.)).child(
-                    Button::new()
-                        .corner_radius(RADIUS_PILL)
-                        .on_press(move |_| {
-                            ui.section.set(Section::General);
-                            ui.screen.set(Screen::Settings)
-                        })
-                        .child(t("events-sign")),
-                ),
-            )
-            .into_element();
-    }
-    let events = ui.events.read().clone();
-    let Some(((next, img), rest)) = events.split_first() else {
-        return glass_panel()
-            .width(Size::px(CARD_W))
-            .padding(space::XL)
-            .child(muted(t("events-no-event-planned-now")))
-            .into_element();
-    };
-    glass_panel()
-        .width(Size::px(CARD_W))
-        .padding(0.)
-        .overflow(Overflow::Clip)
-        .child(banner(img.clone()))
-        .child(
-            rect()
-                .width(Size::fill())
-                .padding((space::L, space::XL, space::XL, space::XL))
-                .spacing(space::S)
-                .child(
-                    rect()
-                        .width(Size::fill())
-                        .horizontal()
-                        .content(Content::Flex)
-                        .cross_align(Alignment::Center)
-                        .spacing(space::M)
-                        .child(
-                            title(next.name.clone())
-                                .font_size(size::LEAD)
-                                .max_lines(2)
-                                .width(Size::flex(1.)),
-                        )
-                        .child(countdown(next, true)),
-                )
-                .child(body(when(next)).color(alpha(T.text, 0.85)))
-                .maybe_child(meta(next).map(muted))
-                .maybe_child(next.description.clone().map(|d| {
-                    muted(d.replace(['\r', '\n'], " "))
-                        .max_lines(3)
-                        .text_overflow(TextOverflow::Ellipsis)
-                }))
-                .children(
-                    rest.iter()
-                        .take(2)
-                        .map(|(ev, _)| later(ev).key(ev.id.clone()).into_element())
-                        .collect::<Vec<_>>(),
-                ),
-        )
-        .into_element()
-}
-
-fn banner(img: Option<std::path::PathBuf>) -> Element {
-    let h = CARD_W * 9. / 16.;
-    match img {
-        Some(p) => ImageViewer::new(p)
-            .width(Size::fill())
-            .height(Size::px(h))
-            .aspect_ratio(AspectRatio::Max)
-            .into_element(),
-        None => rect().into_element(),
-    }
-}
-
-/// A later event: one line with its name, its date and its countdown.
-fn later(ev: &UpcomingEvent) -> Rect {
-    rect()
-        .width(Size::fill())
-        .horizontal()
-        .content(Content::Flex)
-        .cross_align(Alignment::Center)
-        .spacing(space::M)
-        .padding((space::M, 0., 0., 0.))
-        .border(Border::new().fill(alpha(T.text, 0.08)).width(BorderWidth {
-            top: 1.,
-            ..Default::default()
-        }))
-        .child(
-            rect()
-                .width(Size::flex(1.))
-                .spacing(2.)
-                .child(
-                    body(ev.name.clone())
-                        .max_lines(1)
-                        .text_overflow(TextOverflow::Ellipsis),
-                )
-                .child(muted(when(ev))),
-        )
-        .child(countdown(ev, false))
-}
-
-/// Time until the event; only the next one carries the accent.
-fn countdown(ev: &UpcomingEvent, next: bool) -> Rect {
-    let now = Local::now().timestamp().max(0) as u64;
-    let (text, tone) = if ev.start <= now {
-        (t("events-now").to_string(), Tone::Ok)
-    } else {
-        let s = ev.start - now;
-        let (d, h, m) = (s / 86400, s % 86400 / 3600, s % 3600 / 60);
-        let t = match d {
-            0 if h == 0 => t_args("events-countdown-minutes", &[("minutes", m.to_string())]),
-            0 => t_args(
-                "events-countdown-hours",
-                &[("hours", h.to_string()), ("minutes", format!("{m:02}"))],
-            ),
-            d => t_args(
-                "events-countdown-days",
-                &[("days", d.to_string()), ("hours", h.to_string())],
-            ),
-        };
-        (
-            t_args("events-starts-in", &[("time", t)]),
-            if next { Tone::Accent } else { Tone::Neutral },
-        )
-    };
-    rect()
-        .padding((3., 10.))
-        .corner_radius(RADIUS_PILL)
-        .background(alpha(tone.color(), 0.14))
-        .child(
-            label()
-                .text(text)
-                .font_size(size::SMALL)
-                .font_weight(FontWeight::MEDIUM)
-                .color(tone.color()),
-        )
-}
-
-/// "Thu 12 Nov, 20:00 to 22:30" in local time.
-fn when(ev: &UpcomingEvent) -> String {
-    let at = |s: u64| Local.timestamp_opt(s as i64, 0).single();
-    let Some(start) = at(ev.start) else {
-        return String::new();
-    };
-    let start = t_date(start, DateStyle::Event);
-    match ev.end.and_then(at) {
-        Some(end) => t_named(
-            "events-range",
-            &[
-                ("start", start.clone()),
-                ("end", t_date(end, DateStyle::Time)),
-            ],
-        )
-        .unwrap_or(start),
-        None => start,
-    }
-}
-
-/// Where, who hosts, how many are going: whichever the event says.
-fn meta(ev: &UpcomingEvent) -> Option<String> {
-    let mut parts = Vec::new();
-    if let Some(l) = &ev.location {
-        parts.push(l.clone());
-    }
-    if let Some(c) = &ev.creator {
-        parts.push(t_args("events-hosted", &[("host", c.clone())]));
-    }
-    if let Some(n) = ev.attendees.filter(|n| *n > 0) {
-        parts.push(t_args("events-going", &[("count", n.to_string())]));
-    }
-    (!parts.is_empty()).then(|| parts.join(", "))
 }
 
 #[cfg(test)]

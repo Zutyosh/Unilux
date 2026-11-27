@@ -14,9 +14,9 @@ mkdir -p "$appdir/usr/bin"
 cp "$root/target/release/unilux" "$root/target/release/unilux-gui" "$appdir/usr/bin/"
 cp "$root/packaging/unilux.desktop" "$appdir/unilux.desktop"
 cp "$root/assets/unilux-256.png" "$appdir/unilux.png"
-mkdir -p "$appdir/usr/share/icons/hicolor/256x256/apps" "$appdir/usr/share/icons/hicolor/scalable/apps"
+mkdir -p "$appdir/usr/share/icons/hicolor/256x256/apps" "$appdir/usr/share/icons/hicolor/512x512/apps"
 cp "$root/assets/unilux-256.png" "$appdir/usr/share/icons/hicolor/256x256/apps/unilux.png"
-cp "$root/assets/unilux-logo.svg" "$appdir/usr/share/icons/hicolor/scalable/apps/unilux.svg"
+cp "$root/assets/unilux-512.png" "$appdir/usr/share/icons/hicolor/512x512/apps/unilux.png"
 cat > "$appdir/AppRun" <<'EOF'
 #!/bin/sh
 here=$(dirname "$(readlink -f "$0")")

@@ -17,14 +17,12 @@ use crate::widgets::{Tone, chip, group, muted, row, title};
 enum Tab {
     Setup,
     Recipes,
-    Sessions,
     Community,
 }
 
 const TABS: &[(Tab, &str)] = &[
     (Tab::Setup, "recipes-tab-setup"),
     (Tab::Recipes, "recipes-tab-mine"),
-    (Tab::Sessions, "recipes-tab-sessions"),
     (Tab::Community, "recipes-tab-community"),
 ];
 
@@ -126,7 +124,6 @@ impl Component for RecipesSection {
             match current {
                 Tab::Setup => HomeTab { ui, flow }.into_element(),
                 Tab::Recipes => MineTab { ui, flow }.into_element(),
-                Tab::Sessions => crate::sessions::SessionsTab(ui).into_element(),
                 Tab::Community => CommunityTab(ui).into_element(),
             }
         };
@@ -135,7 +132,7 @@ impl Component for RecipesSection {
             .child(
                 rect()
                     .spacing(space::XS)
-                    .child(title(t("prefs-recipes")))
+                    .child(title(t("nav-game")))
                     .maybe_child((!in_tunnel).then(|| muted(t("recipes-lead")))),
             )
             .maybe_child((!in_tunnel).then(|| {

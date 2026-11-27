@@ -13,6 +13,7 @@ mod recipes;
 mod sessions;
 mod settings;
 mod setup;
+mod sky;
 mod state;
 mod theme;
 mod vr;
@@ -296,12 +297,12 @@ mod tests {
         std::fs::write(paths.audit_log(), audit).unwrap();
 
         // Compatibility recipes: every tab, then the compile screen.
-        state::TEST_SECTION.with(|s| s.set(Some(state::Section::Recipes)));
+        state::TEST_SECTION.with(|s| s.set(Some(state::Section::Game)));
         for (i, name) in [
             "recipes",
             "mine",
-            "sessions",
             "community",
+            "game-home",
             "setup-proton",
             "setup-fixes",
             "setup-build",
@@ -310,7 +311,7 @@ mod tests {
         .iter()
         .enumerate()
         {
-            recipes::TEST_TAB.with(|t| t.set(i as u8 % 4));
+            recipes::TEST_TAB.with(|t| t.set(i as u8 % 3));
             setup::TEST_STEP.with(|s| s.set((4..7).contains(&i).then(|| (i - 4) as u8)));
             state::TEST_BUILD.with(|b| b.set(*name == "build"));
             if *name == "build" {
@@ -342,7 +343,7 @@ mod tests {
         }
         setup::TEST_STEP.with(|s| s.set(None));
         state::TEST_BUILD.with(|b| b.set(false));
-        recipes::TEST_TAB.with(|t| t.set(2));
+        state::TEST_SECTION.with(|s| s.set(Some(state::Section::Performance)));
         sessions::TEST_OPEN.with(|o| o.set(true));
         let (mut r, _) = TestingRunner::new(app::app, size, |_| {}, 1.0);
         r.sync_and_update();
@@ -358,9 +359,10 @@ mod tests {
 
         // VR and Diagnostics.
         for (section, name, wait) in [
-            (state::Section::General, "general", 800),
+            (state::Section::Preferences, "general", 800),
             (state::Section::Vr, "vr", 800),
-            (state::Section::Diagnostics, "diagnostics", 4000),
+            (state::Section::Performance, "sessions", 800),
+            (state::Section::Health, "diagnostics", 4000),
             (state::Section::Agents, "agents", 800),
         ] {
             state::TEST_SECTION.with(|s| s.set(Some(section)));

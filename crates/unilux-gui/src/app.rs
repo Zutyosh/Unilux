@@ -20,43 +20,15 @@ pub fn app() -> impl IntoElement {
     };
     let lang = *ui.lang.read();
     let body: Element = rect().expanded().key(lang).child(body).into_element();
-    let bg = ui.background.read().clone();
     rect()
         .expanded()
         .background(T.bg)
         .color(T.text)
         .font_size(size::BODY)
-        .maybe_child((screen != Screen::Settings).then(|| backdrop(bg, screen == Screen::Wizard)))
+        .maybe_child((screen == Screen::Launcher).then_some(crate::sky::Sky(ui)))
         .child(body)
         .maybe_child(crate::state::building(ui).then_some(crate::build_screen::BuildScreen(ui)))
         .maybe_child(ui.error.read().clone().map(move |msg| error_toast(ui, msg)))
-}
-
-fn layer() -> Rect {
-    rect()
-        .position(Position::new_absolute().top(0.).left(0.))
-        .width(Size::fill())
-        .height(Size::fill())
-}
-
-/// Somnium's key art, cover-scaled, darkened towards the bottom so the
-/// bar reads. The wizard dims it further so the text sits on calm ground.
-fn backdrop(bg: Option<std::path::PathBuf>, dim: bool) -> impl IntoElement {
-    // Images paint above sibling rects, so the dimming is the picture's own
-    // opacity over the background colour rather than an overlay.
-    layer().maybe_child(bg.map(|p| {
-        rect()
-            .width(Size::fill())
-            .height(Size::fill())
-            .opacity(if dim { 0.3 } else { 1.0 })
-            .child(
-                ImageViewer::new(p)
-                    .width(Size::fill())
-                    .height(Size::fill())
-                    .aspect_ratio(AspectRatio::Max)
-                    .image_cover(ImageCover::Center),
-            )
-    }))
 }
 
 pub fn logo(px: f32) -> impl IntoElement {

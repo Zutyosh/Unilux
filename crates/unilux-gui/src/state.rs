@@ -19,12 +19,12 @@ pub enum Screen {
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Section {
-    General,
-    Recipes,
+    Game,
     Vr,
-    Diagnostics,
-    Logs,
+    Performance,
+    Health,
     Agents,
+    Preferences,
 }
 
 /// Upcoming events with their downloaded banner.
@@ -32,7 +32,6 @@ pub type EventList = Vec<(UpcomingEvent, Option<std::path::PathBuf>)>;
 
 #[derive(Clone, Copy, PartialEq)]
 pub struct Ui {
-    pub background: State<Option<std::path::PathBuf>>,
     pub screen: State<Screen>,
     pub section: State<Section>,
     pub status: State<Status>,
@@ -53,6 +52,8 @@ pub struct Ui {
     pub lang: State<&'static str>,
     /// The compile screen was dismissed for the current build.
     pub build_hidden: State<bool>,
+    /// The launch log is unfolded under Health.
+    pub logs_open: State<bool>,
     /// Players online in Somnium Space (public, refreshed every minute).
     pub online: State<Option<OnlineStats>>,
     /// The signed-in Somnium account, if any.
@@ -179,7 +180,6 @@ pub fn use_ui() -> Ui {
     let seeded_events = seeded.as_ref().map(|s| s.1.clone());
     let is_seeded = seeded.is_some();
     let mut ui = Ui {
-        background: use_state(|| svc().background()),
         screen: use_state(move || {
             if test.is_some() {
                 Screen::Settings
@@ -189,7 +189,7 @@ pub fn use_ui() -> Ui {
                 Screen::Launcher
             }
         }),
-        section: use_state(move || test.unwrap_or(Section::General)),
+        section: use_state(move || test.unwrap_or(Section::Game)),
         status: use_state(|| svc().status()),
         step: use_state(|| None),
         done_steps: use_state(Vec::new),
@@ -206,6 +206,7 @@ pub fn use_ui() -> Ui {
         restart_ready: use_state(|| false),
         lang: use_state(crate::i18n::current),
         build_hidden: use_state(|| false),
+        logs_open: use_state(|| false),
         online: use_state(|| None),
         account: use_state(move || seeded.map(|s| s.0).or_else(|| svc().somnium_account())),
         events: use_state(move || seeded_events.unwrap_or_default()),
@@ -269,14 +270,6 @@ pub fn use_ui() -> Ui {
     });
 
     use_future(move || async move {
-        if let Ok(Ok(p)) = tokio::spawn(async { svc().fetch_background().await }).await
-            && ui.background.peek().as_ref() != Some(&p)
-        {
-            ui.background.set(Some(p));
-        }
-    });
-
-    use_future(move || async move {
         loop {
             tokio::time::sleep(Duration::from_millis(1000)).await;
             ui.status.set(svc().status());
@@ -287,7 +280,15 @@ pub fn use_ui() -> Ui {
             {
                 ui.update.set(cached);
             }
-            if *ui.section.read() == Section::Logs && *ui.screen.read() == Screen::Settings {
+            let screen = *ui.screen.read();
+            let health_log = *ui.section.read() == Section::Health
+                && *ui.logs_open.read()
+                && screen == Screen::Settings;
+            // The launcher shows the game's last lines while it starts and runs.
+            let st = ui.status.peek().clone();
+            let launcher_log =
+                screen == Screen::Launcher && (st.session_pid.is_some() || st.operation.is_some());
+            if health_log || launcher_log {
                 ui.logs.set(
                     svc()
                         .tail_logs(None, 400)

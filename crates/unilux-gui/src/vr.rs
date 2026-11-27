@@ -238,7 +238,7 @@ fn step_row(num: Option<usize>, s: &Step) -> Element {
         .width(Size::fill())
         .horizontal()
         .content(Content::Flex)
-        .padding((space::M, space::L))
+        .padding((space::M, 0.))
         .spacing(space::M)
         .maybe_child(badge)
         .child(
@@ -417,7 +417,7 @@ fn view(mut ui: Ui) -> impl IntoElement {
                 Some(crate::i18n::t("vr-each-game-measured-mangohud").into()),
                 Some(
                     Button::new()
-                        .on_press(move |_| ui.section.set(Section::Recipes))
+                        .on_press(move |_| ui.section.set(Section::Performance))
                         .child(crate::i18n::t("vr-open-sessions"))
                         .into_element(),
                 ),

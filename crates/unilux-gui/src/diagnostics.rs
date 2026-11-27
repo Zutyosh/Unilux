@@ -8,7 +8,7 @@ use unilux_diag::{Finding, FixId};
 use crate::i18n::{t, t_args};
 use crate::state::{Section, Ui};
 use crate::svc;
-use crate::theme::space;
+use crate::theme::{T, space};
 use crate::widgets::{
     Tone, banner, body, chip, divided, group, mono_box, muted, row, severity_tone,
 };
@@ -141,7 +141,7 @@ fn finding_row(ui: Ui, running: State<bool>, f: &Finding) -> Element {
         .width(Size::fill())
         .horizontal()
         .content(Content::Flex)
-        .padding((space::M, space::L))
+        .padding((space::M, 0.))
         .spacing(space::M)
         .child(
             rect()
@@ -263,27 +263,39 @@ fn view(mut ui: Ui) -> impl IntoElement {
         .map(|f| finding_row(ui, running, f))
         .collect();
 
-    let checked: Vec<Element> = CHECKS
-        .iter()
-        .map(|c| {
-            let (name, what) = check_meta(c.id);
-            let chip_el = if findings.is_none() {
-                chip("...", Tone::Neutral)
-            } else {
-                match list
+    // Only checks that passed are listed here, folded: problems are above.
+    let mut passed_open = use_state(|| false);
+    let passed: Vec<Element> = if findings.is_none() {
+        Vec::new()
+    } else {
+        CHECKS
+            .iter()
+            .filter(|c| {
+                !list
                     .iter()
-                    .filter(|f| f.check == c.id)
-                    .map(|f| f.severity)
-                    .max()
-                {
-                    Some(Severity::Error) => chip(t("diag-problem"), Tone::Error),
-                    Some(Severity::Warn) => chip(t("diag-worth-checking"), Tone::Warn),
-                    _ => chip(t("diag-ok"), Tone::Ok),
-                }
-            };
-            row(name, Some(what.to_string()), Some(chip_el.into_element()))
-        })
-        .collect();
+                    .any(|f| f.check == c.id && f.severity != Severity::Info)
+            })
+            .map(|c| {
+                let (name, what) = check_meta(c.id);
+                row(name, Some(what.to_string()), None)
+            })
+            .collect()
+    };
+    let passed_count = passed.len();
+    let passed_toggle = Button::new()
+        .flat()
+        .compact()
+        .on_press(move |_| passed_open.toggle())
+        .child(
+            label()
+                .text(format!(
+                    "{} {}",
+                    if *passed_open.read() { "▾" } else { "▸" },
+                    t_args("diag-passed-count", &[("count", passed_count.to_string())])
+                ))
+                .color(T.muted),
+        )
+        .into_element();
 
     let help = vec![
         row(
@@ -319,7 +331,7 @@ fn view(mut ui: Ui) -> impl IntoElement {
             Some(
                 Button::new()
                     .flat()
-                    .on_press(move |_| ui.section.set(Section::Logs))
+                    .on_press(move |_| ui.logs_open.toggle())
                     .child(t("diag-open-logs"))
                     .into_element(),
             ),
@@ -329,13 +341,23 @@ fn view(mut ui: Ui) -> impl IntoElement {
     rect()
         .spacing(space::XL)
         .child(crate::widgets::page_header(
-            t("diag-diagnostics"),
+            t("nav-health"),
             t("diag-when-something-does-not"),
         ))
         .child(verdict)
         .maybe_child((!to_fix.is_empty()).then(|| group(t("diag-fix"), divided(to_fix))))
         .maybe_child((!infos.is_empty()).then(|| group(t("diag-information"), divided(infos))))
-        .child(group(t("diag-what-was-checked"), divided(checked)))
+        .maybe_child((passed_count > 0).then(|| {
+            rect()
+                .width(Size::fill())
+                .spacing(space::XS)
+                .child(passed_toggle)
+                .maybe_child(
+                    passed_open
+                        .read()
+                        .then(|| group(t("diag-what-was-checked"), divided(passed))),
+                )
+        }))
         .child(group(t("diag-ask-help"), divided(help)))
 }
 
