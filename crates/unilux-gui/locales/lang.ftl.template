@@ -9,7 +9,6 @@ agents-add-server-mcp-settings = {""}
 agents-agent-then-shares-window = {""}
 agents-agent-waiting-answer = {""}
 agents-agents = {""}
-agents-allow = {""}
 agents-another-agent-cursor-zed = {""}
 # Variables: $p1
 agents-approval = {""}
@@ -69,7 +68,6 @@ agents-sessions-community = {""}
 # Variables: $p1
 agents-show-tools = {""}
 agents-socket = {""}
-agents-socket-2 = {""}
 agents-start-stop-game-update = {""}
 agents-state-logs = {""}
 agents-technical-details = {""}
@@ -211,7 +209,6 @@ diag-worth-checking = {""}
 dismiss = {""}
 events-app = {""}
 events-backup-code = {""}
-events-cancel = {""}
 events-checking = {""}
 events-code = {""}
 # Variables: $p1
@@ -443,7 +440,6 @@ recipes-build = {""}
 recipes-build-now = {""}
 recipes-build-sub = {""}
 recipes-builtin = {""}
-recipes-cancel = {""}
 recipes-check-build = {""}
 recipes-check-env = {""}
 recipes-community-add = {""}

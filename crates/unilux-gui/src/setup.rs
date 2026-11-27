@@ -585,7 +585,7 @@ impl Component for ProtonStep {
             .child(footer(
                 hint,
                 vec![
-                    secondary(t("recipes-cancel"), move |_| {
+                    secondary(t("cancel"), move |_| {
                         let mut flow = flow;
                         flow.set(None)
                     }),

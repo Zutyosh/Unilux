@@ -427,7 +427,7 @@ impl Component for AccountForm {
                             .enabled(ready)
                             .on_press(move |_| verify()),
                         )
-                        .child(link(t("events-cancel")).on_press(move |_| {
+                        .child(link(t("cancel")).on_press(move |_| {
                             challenge.set(None);
                             code.set(String::new());
                             error.set(None)

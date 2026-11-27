@@ -244,7 +244,7 @@ fn view(ui: Ui) -> impl IntoElement {
                                 Button::new()
                                     .filled()
                                     .on_press(move |_| approvals::answer(id, true))
-                                    .child(t("agents-allow")),
+                                    .child(t("agents-approve")),
                             )
                             .child(
                                 Button::new()
@@ -442,7 +442,7 @@ fn view(ui: Ui) -> impl IntoElement {
             t("agents-technical-details"),
             divided(vec![
                 row(
-                    t("agents-socket-2"),
+                    t("agents-socket"),
                     Some(svc().paths().socket().display().to_string()),
                     None,
                 ),
