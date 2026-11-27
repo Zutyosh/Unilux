@@ -1,6 +1,7 @@
-//! UI strings in English and French, picked from LC_ALL/LANG. Every
-//! visible string goes through `t`, or through `tr` when it is used in a
-//! single place and reads better next to its code.
+//! Interface text in every language under `locales/`, picked from the
+//! settings or LC_ALL/LC_MESSAGES/LANG. Every visible string goes through
+//! `t`, `t_with`, `t_named`, `t_date`, or `lookup` when it may be missing.
+//! A key missing from the current language falls back to English.
 
 use chrono::{DateTime, Datelike, Local, Timelike};
 use fluent_bundle::concurrent::FluentBundle;
@@ -9,22 +10,18 @@ use std::{
     borrow::Cow,
     sync::{
         OnceLock,
-        atomic::{AtomicU8, Ordering},
+        atomic::{AtomicUsize, Ordering},
     },
 };
 use unic_langid::LanguageIdentifier;
 
-#[derive(Clone, Copy, PartialEq)]
-#[deprecated(note = "Use LANGS keys instead")]
-pub enum Lang {
-    En,
-    Fr,
-}
-
+/// Every shipped language: its code and its Fluent file.
 const LANGS: &[(&str, &str)] = &[
     ("en", include_str!("../locales/en.ftl")),
     ("fr", include_str!("../locales/fr.ftl")),
 ];
+
+const FALLBACK: &str = "en";
 
 type Bundle = FluentBundle<FluentResource>;
 
@@ -48,71 +45,116 @@ fn bundles() -> &'static Vec<(&'static str, Bundle)> {
     })
 }
 
-pub fn detect() -> Lang {
-    let chosen = crate::try_svc().and_then(|s| s.config().locale);
-    let v = chosen.unwrap_or_else(|| {
-        std::env::var("LC_ALL")
-            .or_else(|_| std::env::var("LANG"))
-            .unwrap_or_default()
-    });
-    if v.starts_with("fr") {
-        Lang::Fr
-    } else {
-        Lang::En
-    }
+fn parse(code: &str) -> FluentResource {
+    let (_, text) = LANGS
+        .iter()
+        .find(|(c, _)| *c == code)
+        .unwrap_or_else(|| panic!("no locale file for {code}"));
+    FluentResource::try_new(text.to_string())
+        .unwrap_or_else(|(_, e)| panic!("{code}.ftl is invalid: {e:?}"))
 }
 
-static CUR: AtomicU8 = AtomicU8::new(0);
+/// Shipped languages as (code, name in that language), for pickers.
+pub fn languages() -> Vec<(&'static str, String)> {
+    LANGS
+        .iter()
+        .map(|(code, _)| {
+            let name = format_in(code, "lang-name", None)
+                .map(Cow::into_owned)
+                .unwrap_or_else(|| code.to_string());
+            (*code, name)
+        })
+        .collect()
+}
+
+/// The shipped language closest to a locale such as `pt_BR.UTF-8`: the
+/// exact tag first, then the language alone, then English.
+fn best_match(locale: &str) -> &'static str {
+    let tag = locale
+        .split(['.', '@'])
+        .next()
+        .unwrap_or_default()
+        .replace('_', "-");
+    let base = tag.split('-').next().unwrap_or_default();
+    let codes = || LANGS.iter().map(|(c, _)| *c);
+    codes()
+        .find(|c| c.eq_ignore_ascii_case(&tag))
+        .or_else(|| codes().find(|c| c.eq_ignore_ascii_case(base)))
+        .unwrap_or(FALLBACK)
+}
+
+/// The language from the settings, or else from the environment.
+pub fn detect() -> &'static str {
+    let chosen = crate::try_svc().and_then(|s| s.config().locale);
+    let locale = chosen
+        .or_else(|| {
+            ["LC_ALL", "LC_MESSAGES", "LANG"]
+                .iter()
+                .filter_map(|k| std::env::var(k).ok())
+                .find(|v| !v.is_empty() && v != "C" && v != "POSIX")
+        })
+        .unwrap_or_default();
+    best_match(&locale)
+}
+
+static CUR: AtomicUsize = AtomicUsize::new(usize::MAX);
 
 /// The language in use; resolved once, then changed only by `set`.
-pub fn current() -> Lang {
-    match CUR.load(Ordering::Relaxed) {
-        1 => Lang::En,
-        2 => Lang::Fr,
-        _ => {
-            let l = detect();
-            set(l);
-            l
+pub fn current() -> &'static str {
+    match LANGS.get(CUR.load(Ordering::Relaxed)) {
+        Some((code, _)) => code,
+        None => {
+            let code = detect();
+            set(code);
+            code
         }
     }
 }
 
-fn parse(key: &str) -> FluentResource {
-    let source = LANGS
+/// Switch to a shipped language; unknown codes fall back to English.
+pub fn set(code: &str) {
+    let i = LANGS
         .iter()
-        .find(|(lang_key, _)| *lang_key == key)
-        .unwrap_or_else(|| panic!("no locale file for {key}"));
-
-    let language = source.1;
-
-    FluentResource::try_new(language.to_string())
-        .unwrap_or_else(|(_, e)| panic!("{key}.ftl is invalid: {e:?}"))
+        .position(|(c, _)| *c == code)
+        .or_else(|| LANGS.iter().position(|(c, _)| *c == FALLBACK))
+        .unwrap_or(0);
+    CUR.store(i, Ordering::Relaxed);
 }
 
-fn fluent(key: &str, args: Option<&[String]>) -> Option<Cow<'static, str>> {
-    let args = args.map(|list| {
-        let mut fluent_args = FluentArgs::new();
-        for (i, value) in list.iter().enumerate() {
-            fluent_args.set(format!("p{}", i + 1), value.clone());
-        }
-        fluent_args
-    });
-    format(key, args.as_ref())
-}
-
-fn format(key: &str, args: Option<&FluentArgs>) -> Option<Cow<'static, str>> {
-    let code = match current() {
-        Lang::En => "en",
-        Lang::Fr => "fr",
-    };
-
+fn format_in(code: &str, key: &str, args: Option<&FluentArgs>) -> Option<Cow<'static, str>> {
     let (_, bundle) = bundles().iter().find(|(c, _)| *c == code)?;
-
-    let id = key.replace('.', "-");
-    let pattern = bundle.get_message(&id)?.value()?;
-
+    let pattern = bundle.get_message(key)?.value()?;
     let mut errors = Vec::new();
     Some(bundle.format_pattern(pattern, args, &mut errors))
+}
+
+/// A message in the current language, or in English when it lacks the key.
+fn format(key: &str, args: Option<&FluentArgs>) -> Option<Cow<'static, str>> {
+    format_in(current(), key, args).or_else(|| format_in(FALLBACK, key, args))
+}
+
+/// Plain text that always exists.
+pub fn t(key: &str) -> &'static str {
+    lookup(key).unwrap_or("?")
+}
+
+/// Plain text that may be missing: the caller picks the fallback.
+pub fn lookup(key: &str) -> Option<&'static str> {
+    match format(key, None) {
+        Some(Cow::Borrowed(text)) => Some(text),
+        _ => None,
+    }
+}
+
+/// Text with values filled in by position, as `$p1`, `$p2`...
+pub fn t_with(key: &str, values: &[String]) -> String {
+    let mut args = FluentArgs::new();
+    for (i, value) in values.iter().enumerate() {
+        args.set(format!("p{}", i + 1), value.clone());
+    }
+    format(key, Some(&args))
+        .unwrap_or(Cow::Borrowed("?"))
+        .into_owned()
 }
 
 /// A message with named values, or None when the key does not exist.
@@ -154,59 +196,36 @@ pub fn t_date(at: DateTime<Local>, style: DateStyle) -> String {
         .into_owned()
 }
 
-pub fn set(l: Lang) {
-    CUR.store(if l == Lang::Fr { 2 } else { 1 }, Ordering::Relaxed);
-}
-
-pub fn t(key: &str) -> &'static str {
-    lookup(key).unwrap_or("?")
-}
-
-pub fn t_with(key: &str, args: &[String]) -> String {
-    fluent(key, Some(args))
-        .unwrap_or(Cow::Borrowed("?"))
-        .into_owned()
-}
-
-#[deprecated(note = "Obselete use fluent() instead")]
-/// A string that may be absent: the caller falls back to something else.
-pub fn lookup(key: &str) -> Option<&'static str> {
-    match fluent(key, None) {
-        Some(Cow::Borrowed(text)) => Some(text),
-        _ => None,
-    }
-}
-
 /// A fix's name in the user's language; unknown (custom) fixes keep theirs.
 pub fn fix_title(id: &str, fallback: &str) -> String {
-    lookup(&format!("fix.{id}.title"))
+    lookup(&format!("fix-{id}-title"))
         .unwrap_or(fallback)
         .to_string()
 }
 
 /// What a fix does, in plain words.
 pub fn fix_summary(id: &str, fallback: &str) -> String {
-    lookup(&format!("fix.{id}.sum"))
+    lookup(&format!("fix-{id}-sum"))
         .unwrap_or(fallback)
         .to_string()
 }
 
 /// A shipped recipe's name and description, translated.
 pub fn recipe_title(id: &str, fallback: &str) -> String {
-    lookup(&format!("recipe.{id}.title"))
+    lookup(&format!("recipe-{id}-title"))
         .unwrap_or(fallback)
         .to_string()
 }
 
 pub fn recipe_desc(id: &str, fallback: &str) -> String {
-    lookup(&format!("recipe.{id}.desc"))
+    lookup(&format!("recipe-{id}-desc"))
         .unwrap_or(fallback)
         .to_string()
 }
 
 /// Step label for an install step id, falling back to the id.
 pub fn step(id: &str) -> String {
-    if let Some(s) = lookup(&format!("step.{id}")) {
+    if let Some(s) = lookup(&format!("step-{id}")) {
         s.to_string()
     } else {
         id.replace('_', " ")
@@ -248,6 +267,64 @@ mod tests {
                 "lang.ftl.template is missing {key}"
             );
         }
+    }
+
+    #[test]
+    fn system_locales_pick_a_shipped_language() {
+        assert_eq!(best_match("fr_FR.UTF-8"), "fr");
+        assert_eq!(best_match("fr_CA@euro"), "fr");
+        assert_eq!(best_match("en_GB.UTF-8"), "en");
+        assert_eq!(best_match("xx_YY.UTF-8"), FALLBACK);
+        assert_eq!(best_match(""), FALLBACK);
+    }
+
+    #[test]
+    fn every_language_names_itself() {
+        for (code, name) in languages() {
+            assert_ne!(name, code, "{code}.ftl has no lang-name");
+        }
+    }
+
+    /// Literal keys passed to t, t_with, t_named and lookup in the GUI sources,
+    /// except this file, whose tests would match themselves.
+    fn keys_used_in_code() -> Vec<(String, String)> {
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+        let mut out = Vec::new();
+        for file in std::fs::read_dir(dir).expect("src is readable") {
+            let path = file.expect("src entry").path();
+            if path.ends_with("i18n.rs") {
+                continue;
+            }
+            let text = std::fs::read_to_string(&path).expect("source is readable");
+            let name = path.file_name().unwrap().to_string_lossy().to_string();
+            for call in ["t(", "t_with(", "t_named(", "lookup("] {
+                for (at, _) in text.match_indices(call) {
+                    let before = text[..at].chars().next_back();
+                    if before.is_some_and(|c| c.is_alphanumeric() || c == '_' || c == '.') {
+                        continue;
+                    }
+                    let rest = text[at + call.len()..].trim_start();
+                    if let Some(lit) = rest.strip_prefix('"')
+                        && let Some(end) = lit.find('"')
+                    {
+                        out.push((name.clone(), lit[..end].to_string()));
+                    }
+                }
+            }
+        }
+        out
+    }
+
+    #[test]
+    fn every_key_in_the_code_is_in_the_template() {
+        let template = keys("lang.ftl.template", &parse_template());
+        let used = keys_used_in_code();
+        assert!(used.len() > 300, "found only {} keys", used.len());
+        let missing: Vec<_> = used.iter().filter(|(_, k)| !template.contains(k)).collect();
+        assert!(
+            missing.is_empty(),
+            "keys missing from the template: {missing:?}"
+        );
     }
 
     #[test]

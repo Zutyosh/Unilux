@@ -211,7 +211,7 @@ fn general(mut ui: Ui) -> impl IntoElement {
         }
     });
     let cur_locale = svc().config().locale;
-    let lang_btn = |label: &'static str, val: Option<&'static str>| {
+    let lang_btn = |label: String, val: Option<&'static str>| {
         let active = cur_locale.as_deref() == val;
         let b = Button::new();
         let b = if active { b.filled() } else { b.flat() };
@@ -235,9 +235,12 @@ fn general(mut ui: Ui) -> impl IntoElement {
     let lang_row = rect()
         .horizontal()
         .spacing(space::S)
-        .child(lang_btn(t("prefs-lang-auto"), None))
-        .child(lang_btn("English", Some("en")))
-        .child(lang_btn("Français", Some("fr")))
+        .child(lang_btn(t("prefs-lang-auto").to_string(), None))
+        .children(
+            crate::i18n::languages()
+                .into_iter()
+                .map(|(code, name)| lang_btn(name, Some(code))),
+        )
         .into_element();
     let current = unilux_update::Version::current().to_string();
     let update_line = match ui.update.read().as_ref() {

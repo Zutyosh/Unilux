@@ -50,7 +50,7 @@ pub struct Ui {
     pub update: State<Option<unilux_service::UpdateInfo>>,
     pub restart_ready: State<bool>,
     /// Interface language; changing it remounts the screen.
-    pub lang: State<crate::i18n::Lang>,
+    pub lang: State<&'static str>,
     /// The compile screen was dismissed for the current build.
     pub build_hidden: State<bool>,
     /// Players online in Somnium Space (public, refreshed every minute).

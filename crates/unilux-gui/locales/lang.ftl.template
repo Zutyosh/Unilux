@@ -360,6 +360,8 @@ fix-ytdlp-android-client-sum = {""}
 fix-ytdlp-android-client-title = {""}
 fix-ytdlp-hook-sum = {""}
 fix-ytdlp-hook-title = {""}
+# The language's own name, shown in the language picker (for example Deutsch).
+lang-name = {""}
 load-0 = {""}
 load-1 = {""}
 load-2 = {""}

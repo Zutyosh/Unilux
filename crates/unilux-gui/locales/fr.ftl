@@ -324,6 +324,7 @@ fix-ytdlp-android-client-sum = Choisit un flux 360p qui contient l'image et le s
 fix-ytdlp-android-client-title = YouTube avec le son (obsolète)
 fix-ytdlp-hook-sum = Permet à Somnium de récupérer les vidéos YouTube avec yt-dlp.
 fix-ytdlp-hook-title = Téléchargeur YouTube
+lang-name = Français
 load-0 = Réveil de Wine
 load-1 = Proton apprend le chemin de Somnium
 load-2 = Déballage de quelques milliers de fichiers

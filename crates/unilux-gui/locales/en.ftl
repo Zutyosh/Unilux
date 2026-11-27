@@ -324,6 +324,7 @@ fix-ytdlp-android-client-sum = Picks a 360p stream that carries picture and soun
 fix-ytdlp-android-client-title = YouTube with sound (obsolete)
 fix-ytdlp-hook-sum = Lets Somnium fetch YouTube videos through yt-dlp.
 fix-ytdlp-hook-title = YouTube downloader
+lang-name = English
 load-0 = Waking up Wine
 load-1 = Teaching Proton the way to Somnium
 load-2 = Unpacking a few thousand files
