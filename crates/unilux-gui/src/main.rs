@@ -79,6 +79,7 @@ fn main() {
         }
     });
     let _ = SERVICE.set(service);
+    i18n::set(i18n::detect());
     launch(
         LaunchConfig::new().with_window(
             WindowConfig::new(app::app)

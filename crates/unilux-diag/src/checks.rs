@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use unilux_components::ProtonId;
 use unilux_components::sources::LAUNCHER_REL_PATH;
 use unilux_core::{Config, Paths, Severity};
+use unilux_i18n::ENGLISH;
 use unilux_install::InstallState;
 use unilux_patches::community::{DipCause, Perf, Video};
 use unilux_patches::{PatchStatus, TargetStatus};
@@ -35,18 +36,22 @@ impl FixId {
         Self::ClearDownloads,
     ];
 
-    pub fn describe(self) -> &'static str {
+    /// What applying it does, in English: for agents, logs and approvals.
+    pub fn describe(self) -> String {
+        self.describe_in(ENGLISH)
+    }
+
+    /// What applying it does, in the given language.
+    pub fn describe_in(self, lang: &str) -> String {
+        unilux_i18n::t_in(lang, self.message(), &[])
+    }
+
+    fn message(self) -> &'static str {
         match self {
-            Self::Repair => {
-                "Re-download and re-apply umu-run, Proton and the patched libraries. Your prefix and Somnium settings stay as they are."
-            }
-            Self::StopSession => {
-                "Stop Somnium Space and every Wine process in its prefix. Unsaved in-game state is lost."
-            }
-            Self::ClearOpenxrOverride => {
-                "Remove the manual OpenXR settings and go back to automatic detection."
-            }
-            Self::ClearDownloads => "Delete cached and partial downloads.",
+            Self::Repair => "diag-fix-repair-describe",
+            Self::StopSession => "diag-fix-stop-session-describe",
+            Self::ClearOpenxrOverride => "diag-fix-clear-openxr-override-describe",
+            Self::ClearDownloads => "diag-fix-clear-downloads-describe",
         }
     }
 
@@ -106,7 +111,11 @@ pub const FINDING_IDS: &[&str] = &[
     "ytdlp-blocked",
 ];
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+/// One conclusion of a check. It holds no title or advice text: front ends render
+/// `finding-<id>-title` and `finding-<id>-advice` from `unilux-i18n` with
+/// [Finding::args]. Serialised (MCP, `--json`, bug reports) it carries the
+/// English title and advice, whatever the interface language.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Finding {
     pub check: &'static str,
     /// Stable name of this kind of finding; front ends translate by it.
@@ -114,29 +123,33 @@ pub struct Finding {
     /// The values in the title and advice, by name, for translations.
     pub args: Vec<(&'static str, String)>,
     pub severity: Severity,
-    pub title: String,
     /// The facts the conclusion rests on: paths, versions, log lines.
     pub evidence: Vec<String>,
-    /// What to do, in one or two sentences.
-    pub advice: Option<String>,
+    advice: Advice,
     pub fix: Option<FixId>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Advice {
+    /// None for machines; front ends still show `finding-<id>-advice` when
+    /// their language has one.
+    Unstated,
+    /// `finding-<id>-advice`, for everyone.
+    Message,
+    /// Text another crate wrote (the VR runtime's blockers and notes),
+    /// passed on as is.
+    Verbatim(String),
+}
+
 impl Finding {
-    fn new(
-        check: &'static str,
-        id: &'static str,
-        severity: Severity,
-        title: impl Into<String>,
-    ) -> Self {
+    fn new(check: &'static str, id: &'static str, severity: Severity) -> Self {
         Self {
             check,
             id,
             args: Vec::new(),
             severity,
-            title: title.into(),
             evidence: Vec::new(),
-            advice: None,
+            advice: Advice::Unstated,
             fix: None,
         }
     }
@@ -148,13 +161,66 @@ impl Finding {
         self.evidence.push(e.into());
         self
     }
-    fn advice(mut self, a: impl Into<String>) -> Self {
-        self.advice = Some(a.into());
+    fn advised(mut self) -> Self {
+        self.advice = Advice::Message;
+        self
+    }
+    fn advice_text(mut self, text: impl Into<String>) -> Self {
+        self.advice = Advice::Verbatim(text.into());
         self
     }
     fn fix(mut self, f: FixId) -> Self {
         self.fix = Some(f);
         self
+    }
+
+    fn key(&self, part: &str) -> String {
+        format!("finding-{}-{part}", self.id)
+    }
+
+    /// The title in the interface language.
+    pub fn title(&self) -> String {
+        unilux_i18n::t_named(&self.key("title"), &self.args)
+            .unwrap_or_else(|| self.title_in(ENGLISH))
+    }
+
+    /// The title in the given language.
+    pub fn title_in(&self, lang: &str) -> String {
+        unilux_i18n::t_in(lang, &self.key("title"), &self.args)
+    }
+
+    /// What to do, in one or two sentences, in the interface language.
+    pub fn advice(&self) -> Option<String> {
+        match &self.advice {
+            Advice::Verbatim(text) => Some(text.clone()),
+            _ => unilux_i18n::t_named(&self.key("advice"), &self.args),
+        }
+    }
+
+    /// The advice the engine states, in the given language: what machine
+    /// readers get.
+    pub fn advice_in(&self, lang: &str) -> Option<String> {
+        match &self.advice {
+            Advice::Unstated => None,
+            Advice::Message => Some(unilux_i18n::t_in(lang, &self.key("advice"), &self.args)),
+            Advice::Verbatim(text) => Some(text.clone()),
+        }
+    }
+}
+
+impl Serialize for Finding {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        let mut st = s.serialize_struct("Finding", 8)?;
+        st.serialize_field("check", self.check)?;
+        st.serialize_field("id", self.id)?;
+        st.serialize_field("args", &self.args)?;
+        st.serialize_field("severity", &self.severity)?;
+        st.serialize_field("title", &self.title_in(ENGLISH))?;
+        st.serialize_field("evidence", &self.evidence)?;
+        st.serialize_field("advice", &self.advice_in(ENGLISH))?;
+        st.serialize_field("fix", &self.fix)?;
+        st.end()
     }
 }
 
@@ -268,19 +334,17 @@ fn python(ctx: &DiagContext) -> Vec<Finding> {
         .as_ref()
         .and_then(|d| d.install_hint("python3"));
     match ctx.system.python {
-        None => {
-            let mut f = Finding::new("python", "python-missing", Severity::Error, "python3 is not installed").arg("hint", hint.as_deref().unwrap_or("none")).evidence("python3 --version did not run");
-            f = f.advice(match hint {
-                Some(h) => format!("umu-run needs Python 3.10 or newer. Install it: {h}"),
-                None => "umu-run needs Python 3.10 or newer. Install it with your package manager.".into(),
-            });
-            vec![f]
-        }
+        None => vec![
+            Finding::new("python", "python-missing", Severity::Error)
+                .arg("hint", hint.as_deref().unwrap_or("none"))
+                .evidence("python3 --version did not run")
+                .advised(),
+        ],
         Some(v) if !v.supported() => vec![
-            Finding::new("python", "python-old", Severity::Error, format!("python3 is {v}, older than 3.10"))
+            Finding::new("python", "python-old", Severity::Error)
                 .arg("version", v)
                 .evidence(format!("python3 --version reports {v}"))
-                .advice("umu-run needs 3.10 or newer as python3 on your PATH. On older LTS releases this usually means upgrading the distribution."),
+                .advised(),
         ],
         Some(_) => vec![],
     }
@@ -290,18 +354,13 @@ fn gpu(ctx: &DiagContext) -> Vec<Finding> {
     let mut out = Vec::new();
     if ctx.system.vulkan_icds.is_empty() {
         out.push(
-            Finding::new("gpu", "no-vulkan", Severity::Error, "No Vulkan driver found")
+            Finding::new("gpu", "no-vulkan", Severity::Error)
                 .evidence("no *.json in /usr/share/vulkan/icd.d or /etc/vulkan/icd.d")
-                .advice("Proton renders through Vulkan. Install your GPU's Vulkan driver (mesa-vulkan-drivers, vulkan-radeon, nvidia-utils, ...)."),
+                .advised(),
         );
     }
     if ctx.system.gpus.is_empty() {
-        out.push(Finding::new(
-            "gpu",
-            "no-gpu",
-            Severity::Warn,
-            "No GPU found under /sys/class/drm",
-        ));
+        out.push(Finding::new("gpu", "no-gpu", Severity::Warn));
     }
     out
 }
@@ -309,9 +368,9 @@ fn gpu(ctx: &DiagContext) -> Vec<Finding> {
 fn network(ctx: &DiagContext) -> Vec<Finding> {
     match ctx.github_reachable {
         Some(false) => vec![
-            Finding::new("network", "github-unreachable", Severity::Error, "GitHub is not reachable")
+            Finding::new("network", "github-unreachable", Severity::Error)
                 .evidence("request to raw.githubusercontent.com failed")
-                .advice("Installs and repairs download from GitHub. Check your connection, proxy or firewall."),
+                .advised(),
         ],
         _ => vec![],
     }
@@ -322,51 +381,28 @@ fn install(ctx: &DiagContext) -> Vec<Finding> {
     let launcher = ctx.prefix.join(LAUNCHER_REL_PATH);
     if !ctx.exists(&launcher) {
         out.push(
-            Finding::new(
-                "install",
-                "somnium-missing",
-                Severity::Error,
-                "Somnium Space is not installed in the prefix",
-            )
-            .evidence(format!("missing {}", launcher.display()))
-            .advice("Run the installer with Somnium's Windows installer from somniumspace.com."),
+            Finding::new("install", "somnium-missing", Severity::Error)
+                .evidence(format!("missing {}", launcher.display()))
+                .advised(),
         );
         return out;
     }
     let umu = unilux_install::umu_run(&ctx.paths);
     if !ctx.exists(&umu) {
         out.push(
-            Finding::new(
-                "install",
-                "umu-missing",
-                Severity::Error,
-                "umu-run is missing",
-            )
-            .evidence(format!("missing {}", umu.display()))
-            .fix(FixId::Repair),
+            Finding::new("install", "umu-missing", Severity::Error)
+                .evidence(format!("missing {}", umu.display()))
+                .fix(FixId::Repair),
         );
     }
     match &ctx.proton_dir {
         Some(p) if ctx.exists(&p.join("proton")) => {}
         Some(p) => out.push(
-            Finding::new(
-                "install",
-                "proton-missing",
-                Severity::Error,
-                "Proton is missing",
-            )
-            .evidence(format!("missing {}", p.display()))
-            .fix(FixId::Repair),
+            Finding::new("install", "proton-missing", Severity::Error)
+                .evidence(format!("missing {}", p.display()))
+                .fix(FixId::Repair),
         ),
-        None => out.push(
-            Finding::new(
-                "install",
-                "no-proton",
-                Severity::Error,
-                "No Proton version recorded",
-            )
-            .fix(FixId::Repair),
-        ),
+        None => out.push(Finding::new("install", "no-proton", Severity::Error).fix(FixId::Repair)),
     }
     out
 }
@@ -381,23 +417,30 @@ fn patches(ctx: &DiagContext) -> Vec<Finding> {
     let mut out = Vec::new();
     match &ctx.patches {
         None | Some(PatchStatus { bundle: None, .. }) => out.push(
-            Finding::new("patches", "no-patches", Severity::Error, "No Somnium patch bundle is installed in this Proton")
+            Finding::new("patches", "no-patches", Severity::Error)
                 .evidence(format!("no .unilux-patches.json in {}", p.display()))
-                .advice("Without it the launcher cannot sign in: stock Wine lacks the TLS client-certificate support Somnium needs.")
+                .advised()
                 .fix(FixId::Repair),
         ),
-        Some(PatchStatus { intact: false, changed, bundle, .. }) => {
+        Some(PatchStatus {
+            intact: false,
+            changed,
+            bundle,
+            ..
+        }) => {
             let bundle = bundle.as_deref().unwrap_or("?");
-            let mut f = Finding::new("patches", "patches-replaced", Severity::Error, format!("Patched files from {bundle} were replaced"))
+            let mut f = Finding::new("patches", "patches-replaced", Severity::Error)
                 .arg("bundle", bundle)
-                .advice("Something (a Proton update, a manual copy) overwrote them. A repair puts them back.")
+                .advised()
                 .fix(FixId::Repair);
             for c in changed.iter().take(6) {
                 f = f.evidence(format!("changed: {c}"));
             }
             out.push(f);
         }
-        Some(PatchStatus { bundle: Some(b), .. }) => out.push(Finding::new("patches", "patches-intact", Severity::Info, format!("Patch bundle {b} installed and intact")).arg("bundle", b)),
+        Some(PatchStatus {
+            bundle: Some(b), ..
+        }) => out.push(Finding::new("patches", "patches-intact", Severity::Info).arg("bundle", b)),
     }
     let id = ctx
         .proton
@@ -406,14 +449,14 @@ fn patches(ctx: &DiagContext) -> Vec<Finding> {
         .unwrap_or_default();
     match ctx.patch_match {
         None if ctx.proton.is_some() => out.push(
-            Finding::new("patches", "patches-none-for-proton", Severity::Warn, format!("The catalog has no patch bundle for {id}"))
+            Finding::new("patches", "patches-none-for-proton", Severity::Warn)
                 .arg("proton", &id)
-                .advice(format!("Switch to a verified Proton, or build a bundle with `unilux patch build --proton {id}` and test it.")),
+                .advised(),
         ),
         Some(TargetStatus::Untested) => out.push(
-            Finding::new("patches", "patches-untested", Severity::Warn, format!("The patch bundle for {id} is untested"))
+            Finding::new("patches", "patches-untested", Severity::Warn)
                 .arg("proton", &id)
-                .advice("It was built for a nearby Proton. If sign-in or video fails, switch to a verified Proton and report the result."),
+                .advised(),
         ),
         _ => {}
     }
@@ -423,9 +466,9 @@ fn patches(ctx: &DiagContext) -> Vec<Finding> {
 fn proton(ctx: &DiagContext) -> Vec<Finding> {
     match ctx.proton.as_ref().and_then(|p| p.major().map(|m| (p, m))) {
         Some((p, m)) if m < 9 => vec![
-            Finding::new("proton", "proton-too-old", Severity::Error, format!("{p} is older than Proton 9"))
+            Finding::new("proton", "proton-too-old", Severity::Error)
                 .arg("proton", p)
-                .advice("Proton 8 and older cannot initialise VR. Pick Proton 9 or newer in the Proton settings."),
+                .advised(),
         ],
         _ => vec![],
     }
@@ -433,8 +476,8 @@ fn proton(ctx: &DiagContext) -> Vec<Finding> {
 
 fn openxr(ctx: &DiagContext) -> Vec<Finding> {
     if let Some(over) = &ctx.config.openxr_env {
-        let mut f = Finding::new("openxr", "openxr-override", Severity::Info, "OpenXR detection is replaced by manual settings")
-            .advice("These settings replace detection entirely. If you need them, please report your runtime so detection can handle it.")
+        let mut f = Finding::new("openxr", "openxr-override", Severity::Info)
+            .advised()
             .fix(FixId::ClearOpenxrOverride);
         for (k, v) in over {
             f = f.evidence(format!("{k}={v}"));
@@ -448,13 +491,8 @@ fn openxr(ctx: &DiagContext) -> Vec<Finding> {
         .as_ref()
         .map(|r| r.name.clone().unwrap_or_else(|| r.kind.to_string()));
     if vr.ready {
-        let mut f = Finding::new(
-            "openxr",
-            "vr-ready",
-            Severity::Info,
-            format!("VR ready: {}", name.clone().unwrap_or_default()),
-        )
-        .arg("runtime", name.clone().unwrap_or_default());
+        let mut f = Finding::new("openxr", "vr-ready", Severity::Info)
+            .arg("runtime", name.clone().unwrap_or_default());
         if let Some(rt) = &vr.active {
             f = f
                 .evidence(format!("manifest {}", rt.manifest.display()))
@@ -470,15 +508,14 @@ fn openxr(ctx: &DiagContext) -> Vec<Finding> {
         out.push(f);
     }
     for b in &vr.blockers {
-        let mut f = Finding::new("openxr", "vr-not-ready", Severity::Warn, "VR is not ready")
-            .advice(b.clone());
+        let mut f = Finding::new("openxr", "vr-not-ready", Severity::Warn).advice_text(b.clone());
         if let Some(n) = &name {
             f = f.evidence(format!("active runtime: {n}"));
         }
         out.push(f);
     }
     for n in &vr.notes {
-        out.push(Finding::new("openxr", "vr-note", Severity::Info, "VR note").advice(n.clone()));
+        out.push(Finding::new("openxr", "vr-note", Severity::Info).advice_text(n.clone()));
     }
     out
 }
@@ -487,17 +524,9 @@ fn session(ctx: &DiagContext) -> Vec<Finding> {
     if ctx.processes.is_empty() {
         return vec![];
     }
-    let mut f = Finding::new(
-        "session",
-        "game-running",
-        Severity::Info,
-        format!(
-            "Somnium Space is running ({} processes)",
-            ctx.processes.len()
-        ),
-    )
-    .arg("count", ctx.processes.len())
-    .fix(FixId::StopSession);
+    let mut f = Finding::new("session", "game-running", Severity::Info)
+        .arg("count", ctx.processes.len())
+        .fix(FixId::StopSession);
     for p in ctx.processes.iter().take(8) {
         f = f.evidence(format!("{} {}", p.pid, p.cmdline));
     }
@@ -507,14 +536,9 @@ fn session(ctx: &DiagContext) -> Vec<Finding> {
 fn desktop_entry(ctx: &DiagContext) -> Vec<Finding> {
     if ctx.state.is_installed() && !ctx.exists(&ctx.paths.desktop_entry()) {
         return vec![
-            Finding::new(
-                "desktop_entry",
-                "desktop-entry-missing",
-                Severity::Warn,
-                "The start-menu entry is missing",
-            )
-            .evidence(format!("missing {}", ctx.paths.desktop_entry().display()))
-            .fix(FixId::Repair),
+            Finding::new("desktop_entry", "desktop-entry-missing", Severity::Warn)
+                .evidence(format!("missing {}", ctx.paths.desktop_entry().display()))
+                .fix(FixId::Repair),
         ];
     }
     vec![]
@@ -523,56 +547,31 @@ fn desktop_entry(ctx: &DiagContext) -> Vec<Finding> {
 fn sandbox(ctx: &DiagContext) -> Vec<Finding> {
     let mut out = Vec::new();
     if ctx.system.in_flatpak {
-        out.push(
-            Finding::new("sandbox", "flatpak", Severity::Warn, "Unilux is running inside a Flatpak sandbox")
-                .advice("Proton's container cannot start from inside Flatpak without host access. Use the AppImage or the native package."),
-        );
+        out.push(Finding::new("sandbox", "flatpak", Severity::Warn).advised());
     }
     if let Some(d) = &ctx.system.distro
         && d.immutable
     {
-        out.push(Finding::new("sandbox", "immutable-distro", Severity::Info, format!("{} is an immutable distribution", d.name)).arg("distro", &d.name).advice("Unilux writes only to your home directory, so this should work. Reports are welcome either way."));
+        out.push(
+            Finding::new("sandbox", "immutable-distro", Severity::Info)
+                .arg("distro", &d.name)
+                .advised(),
+        );
     }
     out
 }
 
 /// Known failure signatures in Proton and Somnium output.
-const LOG_PATTERNS: &[(&str, &str, Severity, &str, &str)] = &[
-    (
-        "SEC_E_",
-        "log-tls",
-        Severity::Error,
-        "TLS errors in the launch log",
-        "The patched secur32/crypt32 are probably not in use. Run a repair.",
-    ),
+const LOG_PATTERNS: &[(&str, &str, Severity)] = &[
+    ("SEC_E_", "log-tls", Severity::Error),
     (
         "certificate verify failed",
         "log-certificate",
         Severity::Error,
-        "Certificate errors in the launch log",
-        "The patched libraries are probably not in use. Run a repair.",
     ),
-    (
-        "err:vulkan",
-        "log-vulkan",
-        Severity::Error,
-        "Vulkan errors in the launch log",
-        "Check the GPU driver and that Vulkan works (vulkaninfo).",
-    ),
-    (
-        "XR_ERROR_RUNTIME_UNAVAILABLE",
-        "log-openxr",
-        Severity::Warn,
-        "The game could not reach the OpenXR runtime",
-        "Connect the headset before launching and check the runtime sees it.",
-    ),
-    (
-        "pressure-vessel-wrap: E:",
-        "log-container",
-        Severity::Error,
-        "Proton's container failed to start",
-        "Look at the line in the evidence; it often names a missing path or permission.",
-    ),
+    ("err:vulkan", "log-vulkan", Severity::Error),
+    ("XR_ERROR_RUNTIME_UNAVAILABLE", "log-openxr", Severity::Warn),
+    ("pressure-vessel-wrap: E:", "log-container", Severity::Error),
 ];
 
 fn vr_perf(ctx: &DiagContext) -> Vec<Finding> {
@@ -583,11 +582,11 @@ fn vr_perf(ctx: &DiagContext) -> Vec<Finding> {
     {
         let path = c.path.display();
         out.push(
-            Finding::new("vr_perf", "compositor-not-realtime", Severity::Warn, format!("{} cannot run its compositor at realtime priority", c.name))
-                    .arg("compositor", &c.name)
-                    .arg("path", &path)
+            Finding::new("vr_perf", "compositor-not-realtime", Severity::Warn)
+                .arg("compositor", &c.name)
+                .arg("path", &path)
                 .evidence(format!("getcap {path}: no cap_sys_nice"))
-                .advice(format!("When the CPU is busy the compositor misses its deadline and the headset rate halves (90 to 45 or lower) for a while. Grant it once, then restart it: sudo setcap CAP_SYS_NICE=+ep {path}. A package update removes it.")),
+                .advised(),
         );
     }
     for p in &t.amd_power {
@@ -596,19 +595,19 @@ fn vr_perf(ctx: &DiagContext) -> Vec<Finding> {
         {
             let file = format!("/sys/class/drm/{}/device/pp_power_profile_mode", p.card);
             out.push(
-                Finding::new("vr_perf", "amd-power-profile", Severity::Warn, "The AMD GPU is not in its VR power profile")
+                Finding::new("vr_perf", "amd-power-profile", Severity::Warn)
                     .arg("profile", vr)
                     .arg("file", &file)
                     .evidence(format!("{file}: {} active", p.active))
-                    .advice(format!("VR load comes in short bursts and the default profile lets the clocks fall between them, so some frames miss the headset deadline. SteamVR switches to the VR profile itself, WiVRn and Monado do not. Until reboot: echo {vr} | sudo tee {file}, or set it permanently in LACT or CoreCtrl.")),
+                    .advised(),
             );
         }
     }
     if !t.overlays.is_empty() {
         out.push(
-            Finding::new("vr_perf", "xr-overlay", Severity::Info, format!("XR overlay running: {}", t.overlays.join(", ")))
+            Finding::new("vr_perf", "xr-overlay", Severity::Info)
                 .arg("overlays", t.overlays.join(", "))
-                .advice("It is a second client of the compositor and takes focus from the game when shown. If slowdowns line up with it, close it to compare."),
+                .advised(),
         );
     }
     if let Some(h) = ctx.last_perf.and_then(|p| p.hitches) {
@@ -617,51 +616,31 @@ fn vr_perf(ctx: &DiagContext) -> Vec<Finding> {
             h.count, h.longest_ms
         );
         out.push(match h.period_s {
-            Some(p) => Finding::new("vr_perf", "freezes-periodic", Severity::Warn, format!("The game freezes every {p:.1} s"))
+            Some(p) => Finding::new("vr_perf", "freezes-periodic", Severity::Warn)
                 .arg("period", format!("{p:.1}"))
                 .evidence(ev)
-                .advice("Freezes on a fixed clock come from a timer inside the game (a periodic cleanup, a poll, a network or voice task), not from the GPU or the compositor. Note what you were doing and compare with voice chat or the microphone off."),
-            None => Finding::new("vr_perf", "freezes", Severity::Info, "Freezes in the last session")
+                .advised(),
+            None => Finding::new("vr_perf", "freezes", Severity::Info)
                 .evidence(ev)
-                .advice("Irregular freezes usually line up with loading: worlds, avatars joining, videos."),
+                .advised(),
         });
     }
     if let Some(d) = ctx.last_perf.and_then(|p| p.dips) {
         let pair = |v: Option<[f32; 2]>, unit: &str| {
             v.map(|[n, d]| format!("{n:.0}{unit} normally, {d:.0}{unit} during them"))
         };
-        let (id, sev, title, advice) = match d.cause {
-            DipCause::GpuWaiting => (
-                "dips-gpu-waiting",
-                Severity::Warn,
-                "The GPU idles during the slowdowns",
-                "Frames are late without the GPU being busy: the game's main thread, the compositor or loading (avatars, worlds, video) holds them back. Check the findings above first; a scene with many avatars on a 6-core CPU is the usual limit.",
-            ),
-            DipCause::GpuClock => (
-                "dips-gpu-clock",
-                Severity::Warn,
-                "The GPU clock drops during the slowdowns",
-                "Power management lowers the clock just when frames need it. Use the VR power profile (see above) or a fixed performance level.",
-            ),
-            DipCause::GpuBound => (
-                "dips-gpu-bound",
-                Severity::Info,
-                "The GPU is saturated during the slowdowns",
-                "Lower the resolution in WiVRn or the in-game graphics settings, or hide distant avatars.",
-            ),
-            DipCause::Unknown => (
-                "dips",
-                Severity::Info,
-                "Slowdowns in the last session",
-                "Neither the GPU load nor its clock explains them, or MangoHud did not report them. They usually come from loading on the game's main thread: worlds, avatars joining, videos.",
-            ),
+        let (id, sev) = match d.cause {
+            DipCause::GpuWaiting => ("dips-gpu-waiting", Severity::Warn),
+            DipCause::GpuClock => ("dips-gpu-clock", Severity::Warn),
+            DipCause::GpuBound => ("dips-gpu-bound", Severity::Info),
+            DipCause::Unknown => ("dips", Severity::Info),
         };
-        let mut f = Finding::new("vr_perf", id, sev, title)
+        let mut f = Finding::new("vr_perf", id, sev)
             .evidence(format!(
                 "last session: {} slowdowns, {:.0} s in total, {:.0} fps during them",
                 d.episodes, d.seconds, d.fps
             ))
-            .advice(advice);
+            .advised();
         for e in [
             pair(d.gpu_load, " % GPU"),
             pair(d.gpu_clock_mhz, " MHz"),
@@ -679,8 +658,6 @@ fn vr_perf(ctx: &DiagContext) -> Vec<Finding> {
 
 /// Swap use above this during a session is worth a look.
 const SWAP_WARN_GB: f32 = 0.5;
-const SWAP_ADVICE: &str = "Pages the game touches again come back from disk, and the frame waits for them: freezes when loading worlds and avatars. Set up zram (zram-generator or your distribution's zram package) so swapped pages stay in compressed RAM, and close browsers or other heavy apps before playing.";
-const ZRAM_ADVICE: &str = "zram keeps swap cheap, but the kernel still evicted game memory. Close other heavy apps before playing; with zram, vm.swappiness between 100 and 180 swaps idle pages before the game's.";
 
 fn memory(ctx: &DiagContext) -> Vec<Finding> {
     let Some(peak) = ctx.last_perf.and_then(|p| p.swap_peak_gb) else {
@@ -690,21 +667,14 @@ fn memory(ctx: &DiagContext) -> Vec<Finding> {
         return vec![];
     }
     let m = &ctx.system.vr_tuning.memory;
-    let mut f = Finding::new(
-        "memory",
-        if m.zram { "swap-zram" } else { "swap-disk" },
-        if m.zram {
-            Severity::Info
-        } else {
-            Severity::Warn
-        },
-        format!(
-            "The last session pushed {peak:.1} GB to {}",
-            if m.zram { "zram" } else { "swap" }
-        ),
-    )
-    .arg("gb", format!("{peak:.1}"))
-    .evidence(format!("MangoHud swap_used peaked at {peak:.2} GB"));
+    let (id, sev) = if m.zram {
+        ("swap-zram", Severity::Info)
+    } else {
+        ("swap-disk", Severity::Warn)
+    };
+    let mut f = Finding::new("memory", id, sev)
+        .arg("gb", format!("{peak:.1}"))
+        .evidence(format!("MangoHud swap_used peaked at {peak:.2} GB"));
     if let Some(s) = m.swappiness {
         f = f.evidence(format!("vm.swappiness = {s}"));
     }
@@ -713,8 +683,7 @@ fn memory(ctx: &DiagContext) -> Vec<Finding> {
     } else {
         format!("swap areas: {}", m.swaps.join(", "))
     });
-    let advice = if m.zram { ZRAM_ADVICE } else { SWAP_ADVICE };
-    vec![f.advice(advice)]
+    vec![f.advised()]
 }
 
 fn video(ctx: &DiagContext) -> Vec<Finding> {
@@ -723,24 +692,32 @@ fn video(ctx: &DiagContext) -> Vec<Finding> {
     };
     if v.ytdlp_blocked > 0 {
         return vec![
-            Finding::new("video", "ytdlp-blocked", Severity::Error, "yt-dlp cannot start under this Proton")
+            Finding::new("video", "ytdlp-blocked", Severity::Error)
                 .evidence(format!("last session: {} YouTube extractions refused by PyInstaller (\"Security validation failure: unexpected name of application's home directory\")", v.ytdlp_blocked))
-                .advice("Somnium's yt-dlp.exe checks the name of its temporary directory, and stock Wine shortens it, so no YouTube video loads. Use a recipe with the pyinstaller-tempnam fix (the built-in recommended one has it): unilux recipe use recommended."),
+                .advised(),
         ];
     }
     let mut out = Vec::new();
     if v.domain_blocked > 0 {
         out.push(
-            Finding::new("video", "video-domain-blocked", Severity::Info, "Somnium refused some video links")
-                .evidence(format!("last session: {} links refused with \"Domain not allowed\" in Player.log", v.domain_blocked))
-                .advice("Somnium only plays links from domains on its own allow list; the player stays blank without an error. This is the game's rule, not Wine: use a YouTube link or a host the world's creator allows."),
+            Finding::new("video", "video-domain-blocked", Severity::Info)
+                .evidence(format!(
+                    "last session: {} links refused with \"Domain not allowed\" in Player.log",
+                    v.domain_blocked
+                ))
+                .advised(),
         );
     }
     if v.extract_failed > 0 {
         out.push(
-            Finding::new("video", "video-extract-failed", Severity::Info, "Some YouTube links could not be extracted")
-                .evidence(format!("last session: {} failed yt-dlp extractions, {} of {} video opens failed", v.extract_failed, v.failed.min(v.opened), v.opened))
-                .advice("yt-dlp ran but could not read these links: private or age-restricted videos, or YouTube changed something. Try another video; if every one fails, Somnium needs a yt-dlp update."),
+            Finding::new("video", "video-extract-failed", Severity::Info)
+                .evidence(format!(
+                    "last session: {} failed yt-dlp extractions, {} of {} video opens failed",
+                    v.extract_failed,
+                    v.failed.min(v.opened),
+                    v.opened
+                ))
+                .advised(),
         );
     }
     out
@@ -748,15 +725,15 @@ fn video(ctx: &DiagContext) -> Vec<Finding> {
 
 fn launch_log(ctx: &DiagContext) -> Vec<Finding> {
     let mut out = Vec::new();
-    for (needle, id, sev, title, advice) in LOG_PATTERNS {
+    for (needle, id, sev) in LOG_PATTERNS {
         let hits: Vec<&String> = ctx
             .launch_log
             .iter()
             .filter(|l| l.contains(needle))
             .collect();
         if let Some(first) = hits.first() {
-            let mut f = Finding::new("launch_log", id, *sev, *title)
-                .advice(*advice)
+            let mut f = Finding::new("launch_log", id, *sev)
+                .advised()
                 .evidence(format!(
                     "{} matching lines, first: {}",
                     hits.len(),
@@ -915,13 +892,12 @@ mod tests {
                 changed: vec!["files/x.dll".into()],
             })
         }));
-        assert!(changed[0].title.contains("replaced"));
+        assert!(changed[0].title_in(ENGLISH).contains("replaced"));
         let ok = patches(&ctx(&[PROTON], |_| {}));
         assert_eq!(ids(&ok), [("patches", Severity::Info)]);
         let nomatch = patches(&ctx(&[PROTON], |c| c.patch_match = None));
         assert!(nomatch.iter().any(|f| {
-            f.advice
-                .as_ref()
+            f.advice_in(ENGLISH)
                 .is_some_and(|a| a.contains("unilux patch build"))
         }));
         assert!(
@@ -948,7 +924,7 @@ mod tests {
         let old = python(&ctx(&[], |c| {
             c.system.python = Some(PythonVersion { major: 3, minor: 9 })
         }));
-        assert!(old[0].title.contains("3.9"));
+        assert!(old[0].title_in(ENGLISH).contains("3.9"));
     }
 
     #[test]
@@ -1027,8 +1003,7 @@ mod tests {
         assert_eq!(v[0].severity, Severity::Info);
         assert!(v[0].evidence.iter().any(|e| e.contains("/dev/zram0")));
         assert!(
-            v[0].advice
-                .as_deref()
+            v[0].advice_in(ENGLISH)
                 .unwrap()
                 .contains("between 100 and 180")
         );
@@ -1056,7 +1031,221 @@ mod tests {
                 ..Video::default()
             })
         }));
-        assert_eq!(v[0].title, "Somnium refused some video links");
+        assert_eq!(v[0].title_in(ENGLISH), "Somnium refused some video links");
+    }
+
+    fn dips(cause: DipCause) -> unilux_patches::community::Dips {
+        unilux_patches::community::Dips {
+            episodes: 3,
+            seconds: 4.5,
+            fps: 38.0,
+            gpu_load: Some([60.0, 95.0]),
+            gpu_clock_mhz: Some([2400.0, 1200.0]),
+            cpu_load: None,
+            cause,
+        }
+    }
+
+    fn hitches(period_s: Option<f32>) -> unilux_patches::community::Hitches {
+        unilux_patches::community::Hitches {
+            count: 4,
+            longest_ms: 310.0,
+            period_s,
+        }
+    }
+
+    /// Contexts that between them raise every finding once.
+    fn catalogue() -> Vec<Finding> {
+        let video = Video {
+            opened: 9,
+            failed: 7,
+            extract_failed: 5,
+            ytdlp_blocked: 5,
+            domain_blocked: 2,
+        };
+        let perf = |dips: DipCause, period: Option<f32>, swap: f32| Perf {
+            dips: Some(self::dips(dips)),
+            hitches: Some(hitches(period)),
+            swap_peak_gb: Some(swap),
+            ..Default::default()
+        };
+        let zram = unilux_system::memory(
+            Some("60\n"),
+            Some("Filename Type\n/dev/zram0 partition 8G 0 100\n"),
+        );
+        let scenarios = vec![
+            ctx(&[], |c| {
+                c.system.python = None;
+                c.system.vulkan_icds.clear();
+                c.system.gpus.clear();
+                c.github_reachable = Some(false);
+                c.system.in_flatpak = true;
+            }),
+            ctx(&[], |c| {
+                c.system.python = None;
+                c.system.distro = Some(unilux_system::Distro::parse("ID=debian\nNAME=Debian"));
+            }),
+            ctx(&[], |c| {
+                c.system.python = Some(PythonVersion { major: 3, minor: 9 });
+                c.system.distro = Some(unilux_system::Distro::parse("ID=bazzite\nNAME=Bazzite"));
+            }),
+            ctx(&[LAUNCHER], |_| {}),
+            ctx(&[LAUNCHER, UMU], |c| c.proton_dir = None),
+            ctx(&[PROTON], |c| c.patches = None),
+            ctx(&[PROTON], |c| {
+                c.patches = Some(PatchStatus {
+                    bundle: Some("b1".into()),
+                    intact: false,
+                    changed: vec!["files/x.dll".into()],
+                });
+                c.patch_match = None;
+            }),
+            ctx(&[PROTON], |c| c.patch_match = Some(TargetStatus::Untested)),
+            ctx(&[], |c| {
+                c.proton = Some(ProtonId::new("ge", "GE-Proton8-32"))
+            }),
+            ctx(&[], |c| {
+                c.config.openxr_env = Some([("A".into(), "1".into())].into())
+            }),
+            ctx(&[], |c| {
+                let mut v = vr(false, &["Start WiVRn and connect the headset."]);
+                v.notes = vec!["WiVRn or Monado are recommended over SteamVR.".into()];
+                c.vr = Some(v);
+            }),
+            ctx(&[], |c| c.vr = Some(vr(true, &[]))),
+            ctx(&[], |c| {
+                c.processes = vec![ProcInfo {
+                    pid: 7,
+                    ppid: None,
+                    name: "wine".into(),
+                    cmdline: "x".into(),
+                    wineprefix: None,
+                }];
+                c.state.installed_at = Some(1);
+                c.launch_log = LOG_PATTERNS
+                    .iter()
+                    .map(|(needle, ..)| format!("0024:{needle} here"))
+                    .collect();
+            }),
+            ctx(&[], |c| {
+                c.system.vr_tuning.compositor = Some(unilux_system::Compositor {
+                    name: "wivrn-server".into(),
+                    path: "/usr/bin/wivrn-server".into(),
+                    realtime: Some(false),
+                });
+                c.system.vr_tuning.amd_power = vec![unilux_system::PowerProfile {
+                    card: "card0".into(),
+                    active: "3D_FULL_SCREEN".into(),
+                    vr_index: Some(4),
+                }];
+                c.system.vr_tuning.overlays = vec!["wayvr".into(), "xrdesktop".into()];
+                c.last_perf = Some(perf(DipCause::GpuWaiting, Some(30.0), 2.5));
+                c.last_video = Some(video);
+            }),
+            ctx(&[], |c| {
+                c.last_perf = Some(perf(DipCause::GpuClock, None, 0.1));
+                c.last_video = Some(Video {
+                    ytdlp_blocked: 0,
+                    ..video
+                });
+            }),
+            ctx(&[], |c| {
+                c.last_perf = Some(perf(DipCause::GpuBound, Some(12.25), 0.1))
+            }),
+            ctx(&[], |c| {
+                c.last_perf = Some(perf(DipCause::Unknown, None, 1.25));
+                c.system.vr_tuning.memory = zram.clone();
+            }),
+        ];
+        let mut out: Vec<Finding> = Vec::new();
+        for c in &scenarios {
+            for f in CHECKS.iter().flat_map(|k| (k.run)(c)) {
+                if !out.contains(&f) {
+                    out.push(f);
+                }
+            }
+        }
+        out
+    }
+
+    /// What machine readers (MCP, `--json`, bug reports) get for every
+    /// finding. Rerun with UNILUX_BLESS=1 only when a change is intended.
+    #[test]
+    fn machine_readable_findings_are_stable() {
+        let v = catalogue();
+        let seen: HashSet<&str> = v.iter().map(|f| f.id).collect();
+        let missing: Vec<_> = FINDING_IDS
+            .iter()
+            .filter(|id| !seen.contains(*id))
+            .collect();
+        assert!(
+            missing.is_empty(),
+            "no catalogue context raises {missing:?}"
+        );
+        let text = serde_json::to_string_pretty(&v).unwrap() + "\n";
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("testdata/findings.en.json");
+        if std::env::var_os("UNILUX_BLESS").is_some() {
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(&path, &text).unwrap();
+        }
+        let golden = std::fs::read_to_string(&path).unwrap_or_default();
+        assert!(
+            golden == text,
+            "findings JSON changed, see {}",
+            path.display()
+        );
+    }
+
+    /// Without engine text to fall back on, every finding needs its English
+    /// in en.ftl (and so in the template every language follows).
+    #[test]
+    fn every_finding_has_a_title_and_advice() {
+        let mut missing = Vec::new();
+        for id in FINDING_IDS {
+            let key = format!("finding-{id}-title");
+            if !unilux_i18n::has_key(ENGLISH, &key) {
+                missing.push(key);
+            }
+        }
+        for f in catalogue() {
+            if f.advice == Advice::Message && !unilux_i18n::has_key(ENGLISH, &f.key("advice")) {
+                missing.push(f.key("advice"));
+            }
+        }
+        assert!(missing.is_empty(), "en.ftl is missing {missing:?}");
+    }
+
+    #[test]
+    fn every_fix_has_a_description() {
+        for f in FixId::ALL {
+            assert!(
+                unilux_i18n::has_key(ENGLISH, f.message()),
+                "en.ftl is missing {}",
+                f.message()
+            );
+            assert_ne!(f.describe_in("fr"), f.describe(), "{f:?} is not translated");
+        }
+    }
+
+    /// The text a person reads follows the interface language; what machines
+    /// read stays English.
+    #[test]
+    fn people_get_their_language_machines_get_english() {
+        let f = Finding::new("network", "github-unreachable", Severity::Error).advised();
+        assert_eq!(f.title_in(ENGLISH), "GitHub is not reachable");
+        assert_ne!(f.title_in("fr"), f.title_in(ENGLISH));
+        assert_ne!(f.advice_in("fr"), f.advice_in(ENGLISH));
+        let json = serde_json::to_value(&f).unwrap();
+        assert_eq!(json["title"], "GitHub is not reachable");
+        let quiet = Finding::new("install", "umu-missing", Severity::Error);
+        assert!(
+            quiet.advice_in(ENGLISH).is_none(),
+            "machines get only stated advice"
+        );
+        assert!(
+            quiet.advice().is_some(),
+            "people still get the translated hint"
+        );
     }
 
     #[test]

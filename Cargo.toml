@@ -20,6 +20,7 @@ unilux-diag = { path = "crates/unilux-diag" }
 unilux-service = { path = "crates/unilux-service" }
 unilux-agent = { path = "crates/unilux-agent" }
 unilux-update = { path = "crates/unilux-update" }
+unilux-i18n = { path = "crates/unilux-i18n" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 toml = "1"

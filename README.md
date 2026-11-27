@@ -28,9 +28,9 @@ A folder that is empty or does not exist yet receives the prefix itself; a folde
 
 ## Languages
 
-The app speaks English, French and Scots. It follows your system language (`LC_ALL`, `LC_MESSAGES` or `LANG`); Settings > General > Language picks another. Text missing from a language shows in English.
+The app and the `unilux` command speak English, French and Scots. They follow your system language (`LC_ALL`, `LC_MESSAGES` or `LANG`); Settings > General > Language picks another, and the command line follows that choice too. Text missing from a language shows in English. The MCP server, `--json` output and bug reports are always in English, whatever language the interface uses.
 
-To add a language, copy `crates/unilux-gui/locales/lang.ftl.template` to `<code>.ftl` (for example `de.ftl` or `pt-BR.ftl`), fill in each `{""}`, and add the file to `LANGS` in `crates/unilux-gui/src/i18n.rs`. The files use [Fluent](https://projectfluent.org): values are named (`{ $count }`, `{ $path }`), and the comment above a message lists them. `cargo test -p unilux-gui i18n` checks that the new file has every key and only the variables the template declares. The command line and MCP server are in English only for now.
+To add a language, copy `crates/unilux-i18n/locales/lang.ftl.template` to `<code>.ftl` (for example `de.ftl` or `pt-BR.ftl`), fill in each `{""}`, and add the file to `LANGS` in `crates/unilux-i18n/src/lib.rs`. The files use [Fluent](https://projectfluent.org): values are named (`{ $count }`, `{ $path }`), and the comment above a message lists them. `cargo test -p unilux-i18n` checks that the new file has every key and only the variables the template declares.
 
 ## VR runtimes
 
