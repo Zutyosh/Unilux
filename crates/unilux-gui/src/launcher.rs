@@ -48,7 +48,16 @@ fn view(ui: Ui) -> impl IntoElement {
                 .maybe_child(update_badge(ui))
                 .maybe_child(crate::events::online_badge(ui)),
         )
-        .child(rect().height(Size::flex(1.)))
+        .child(
+            rect()
+                .width(Size::fill())
+                .height(Size::flex(1.))
+                .horizontal()
+                .main_align(Alignment::End)
+                .padding((space::XL, 0., space::L, 0.))
+                .overflow(Overflow::Clip)
+                .child(crate::events::events_panel(ui)),
+        )
         .child(
             rect()
                 .width(Size::fill())

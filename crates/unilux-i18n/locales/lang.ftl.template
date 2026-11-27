@@ -354,6 +354,22 @@ events-code-sent-sms = {""}
 events-confirm = {""}
 # Variables: $hours, $minutes
 events-countdown-hours = {""}
+events-somnium-events = {""}
+events-sign-somnium-space-account = {""}
+events-no-event-planned-now = {""}
+events-now = {""}
+# Variables: $minutes
+events-countdown-minutes = {""}
+# Variables: $days, $hours
+events-countdown-days = {""}
+# Variables: $time
+events-starts-in = {""}
+# Variables: $start, $end
+events-range = {""}
+# Variables: $host
+events-hosted = {""}
+# Variables: $count
+events-going = {""}
 events-e-mail-user-name = {""}
 events-enter-6-digit-code = {""}
 events-enter-one-backup-codes = {""}

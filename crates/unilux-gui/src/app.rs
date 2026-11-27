@@ -25,7 +25,7 @@ pub fn app() -> impl IntoElement {
         .background(T.bg)
         .color(T.text)
         .font_size(size::BODY)
-        .maybe_child((screen == Screen::Launcher).then_some(crate::sky::Sky(ui)))
+        .maybe_child((screen == Screen::Launcher).then_some(crate::panorama::Panorama(ui)))
         .child(body)
         .maybe_child(crate::state::building(ui).then_some(crate::build_screen::BuildScreen(ui)))
         .maybe_child(ui.error.read().clone().map(move |msg| error_toast(ui, msg)))

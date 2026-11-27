@@ -7,13 +7,14 @@ mod build_screen;
 mod diagnostics;
 mod events;
 mod i18n;
+mod identity;
 mod launcher;
 mod loader;
+mod panorama;
 mod recipes;
 mod sessions;
 mod settings;
 mod setup;
-mod sky;
 mod state;
 mod theme;
 mod vr;
@@ -81,10 +82,14 @@ fn main() {
     });
     let _ = SERVICE.set(service);
     i18n::set(i18n::detect());
+    panorama::preload();
+    identity::register(|k| std::env::var(k).ok());
     launch(
         LaunchConfig::new().with_window(
             WindowConfig::new(app::app)
                 .with_title("Unilux")
+                .with_app_id(identity::APP_ID)
+                .with_icon(LaunchConfig::window_icon(identity::ICON_256))
                 .with_size(1180., 720.)
                 .with_min_size(900., 600.)
                 .with_background((0x12, 0x14, 0x17)),
@@ -189,6 +194,7 @@ mod tests {
             r#"{"schema":2,"proton":"ge:GE-Proton11-5","installed_at":1}"#,
         )
         .unwrap();
+        panorama::load();
         let (mut launcher, _) = TestingRunner::new(app::app, size, |_| {}, 1.0);
         launcher.sync_and_update();
         launcher.poll(
