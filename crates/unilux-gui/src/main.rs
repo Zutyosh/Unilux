@@ -51,6 +51,7 @@ pub fn svc() -> &'static Service {
 }
 
 fn main() {
+    panorama::preload();
     let rt = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
@@ -82,7 +83,6 @@ fn main() {
     });
     let _ = SERVICE.set(service);
     i18n::set(i18n::detect());
-    panorama::preload();
     identity::register(|k| std::env::var(k).ok());
     launch(
         LaunchConfig::new().with_window(

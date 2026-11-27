@@ -16,6 +16,10 @@ use crate::state::Ui;
 
 /// Equirectangular, 2:1, 7680×3840.
 const PANORAMA: &[u8] = include_bytes!("../assets/panorama.jpg");
+/// The same picture at 2048×1024: decoded in a few milliseconds, it fills
+/// the first frames while the full one decodes, so the launcher never opens
+/// on an empty background.
+const PREVIEW: &[u8] = include_bytes!("../assets/panorama-preview.jpg");
 /// One full turn every four minutes.
 const TURN_SECS: f32 = 240.;
 /// Slightly down, so the ground and the lights sit in the middle.
@@ -63,26 +67,37 @@ half4 main(float2 p) {
 }
 ";
 
-/// The decoded picture, prepared off the UI thread at start.
+/// The decoded pictures: the full one prepared off the UI thread at start.
 static IMAGE: OnceLock<Option<Image>> = OnceLock::new();
+static SMALL: OnceLock<Option<Image>> = OnceLock::new();
 
-/// Decode the panorama in the background so the first frame does not wait.
+/// Decode the preview now and the full panorama in the background, before
+/// the window opens.
 pub fn preload() {
     STARTED.get_or_init(Instant::now);
     std::thread::spawn(|| {
-        IMAGE.get_or_init(decode);
+        IMAGE.get_or_init(|| decode(PANORAMA));
     });
+    SMALL.get_or_init(|| decode(PREVIEW));
 }
 
 /// Decode now, on this thread: tests render the launcher right away.
 #[cfg(test)]
 pub fn load() {
-    IMAGE.get_or_init(decode);
+    IMAGE.get_or_init(|| decode(PANORAMA));
 }
 
-fn decode() -> Option<Image> {
-    let image = Image::from_encoded(Data::new_copy(PANORAMA))?;
+fn decode(bytes: &'static [u8]) -> Option<Image> {
+    let image = Image::from_encoded(Data::new_copy(bytes))?;
     image.make_raster_image(None, None).or(Some(image))
+}
+
+/// The best picture ready right now.
+fn picture() -> Option<&'static Image> {
+    match IMAGE.get() {
+        Some(Some(full)) => Some(full),
+        _ => SMALL.get_or_init(|| decode(PREVIEW)).as_ref(),
+    }
 }
 
 thread_local! {
@@ -141,7 +156,7 @@ impl Component for Panorama {
 
 fn draw(canvas: &freya::engine::prelude::Canvas, w: f32, h: f32, t: f32) {
     EFFECT.with(|effect| {
-        if let (Some(Some(image)), Some(effect)) = (IMAGE.get(), effect) {
+        if let (Some(image), Some(effect)) = (picture(), effect) {
             draw_with(canvas, effect, image, w, h, t);
         }
     });
@@ -197,8 +212,10 @@ mod tests {
 
     #[test]
     fn picture_is_a_full_resolution_panorama() {
-        let image = decode().expect("panorama decodes");
+        let image = decode(PANORAMA).expect("panorama decodes");
         assert_eq!(image.width(), 2 * image.height());
         assert!(image.width() >= 7680);
+        let small = decode(PREVIEW).expect("preview decodes");
+        assert_eq!(small.width(), 2 * small.height());
     }
 }
