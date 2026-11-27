@@ -33,6 +33,16 @@ pub enum ProtonCmd {
 }
 
 #[derive(Subcommand)]
+pub enum PrefixCmd {
+    /// Where the Wine prefix lives.
+    Show,
+    /// Move the prefix into a folder, e.g. on a game drive. A non-empty
+    /// folder gets a new unilux-prefix folder inside it. Stops anything
+    /// still running in the prefix.
+    Move { dir: PathBuf },
+}
+
+#[derive(Subcommand)]
 pub enum PatchCmd {
     /// Patch bundle installed in the current Proton, and whether it is intact.
     Status,
@@ -140,6 +150,18 @@ pub fn parse_id(s: &str) -> Result<unilux_components::ProtonId, unilux_core::Err
 
 fn joined<T>(v: &[T], f: impl Fn(&T) -> String) -> String {
     v.iter().map(f).collect::<Vec<_>>().join("\n")
+}
+
+pub async fn prefix(out: &Out, svc: &Service, cmd: PrefixCmd) -> ExitCode {
+    match cmd {
+        PrefixCmd::Show => out.ok(&svc.status().prefix, |p| p.display().to_string()),
+        PrefixCmd::Move { dir } => {
+            let dir = std::path::absolute(&dir).unwrap_or(dir);
+            out.result(svc.move_prefix(dir).await, |p| {
+                format!("The prefix now lives in {}.", p.display())
+            })
+        }
+    }
 }
 
 pub async fn proton(out: &Out, svc: &Service, cmd: ProtonCmd) -> ExitCode {

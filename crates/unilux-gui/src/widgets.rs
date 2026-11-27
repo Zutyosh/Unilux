@@ -250,11 +250,51 @@ pub fn severity_tone(s: unilux_core::Severity) -> Tone {
     }
 }
 
+/// The native folder picker; None when cancelled.
+pub async fn pick_folder(title: &str) -> Option<std::path::PathBuf> {
+    let title = title.to_string();
+    tokio::spawn(async move {
+        rfd::AsyncFileDialog::new()
+            .set_title(title)
+            .pick_folder()
+            .await
+            .map(|h| h.path().to_path_buf())
+    })
+    .await
+    .ok()
+    .flatten()
+}
+
 /// Percentage of a progress event, if the total is known.
 pub fn percent(done: u64, total: Option<u64>) -> Option<f32> {
     total
         .filter(|t| *t > 0)
         .map(|t| (done as f32 * 100. / t as f32).clamp(0., 100.))
+}
+
+/// A slim bar with its percentage beside it: the 6px track is too thin to
+/// hold the label freya draws inside the fill.
+pub fn progress_bar(pct: f32) -> Rect {
+    let pct = pct.clamp(0., 100.);
+    rect()
+        .width(Size::fill())
+        .horizontal()
+        .content(Content::Flex)
+        .cross_align(Alignment::Center)
+        .spacing(space::M)
+        .child(
+            rect().width(Size::flex(1.)).child(
+                ProgressBar::new(pct)
+                    .show_progress(false)
+                    .width(Size::fill()),
+            ),
+        )
+        .child(
+            muted(format!("{:.0}%", pct.floor()))
+                .width(Size::px(40.))
+                .text_align(TextAlign::End)
+                .max_lines(1),
+        )
 }
 
 /// A verdict strip: a tone, a headline, one sentence and an optional action.

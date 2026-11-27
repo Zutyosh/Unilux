@@ -11,7 +11,9 @@ use crate::loader::OrbitLoader;
 use crate::state::Ui;
 use crate::svc;
 use crate::theme::{RADIUS_PANEL, RADIUS_PILL, T, alpha, size, space};
-use crate::widgets::{Tone, body, chip, group, muted, percent, proton_name, row, title};
+use crate::widgets::{
+    Tone, body, chip, group, muted, percent, progress_bar, proton_name, row, title,
+};
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Step {
@@ -1009,11 +1011,7 @@ impl Component for BuildStep {
                     .child(OrbitLoader)
                     .child(title(t("setup-running")))
                     .child(muted(step_line))
-                    .maybe_child(bar.map(|p| {
-                        rect()
-                            .width(Size::px(360.))
-                            .child(ProgressBar::new(p).show_progress(true).width(Size::fill()))
-                    }))
+                    .maybe_child(bar.map(|p| rect().width(Size::px(360.)).child(progress_bar(p))))
                     .into_element()
             }
             Phase::Done => rect()

@@ -189,13 +189,13 @@ fn progress_line(ui: Ui) -> Option<Element> {
             .width(Size::px(280.))
             .spacing(space::XS)
             .child(muted(
-                step.map(|s| {
-                    crate::i18n::lookup(&format!("step-{s}"))
-                        .map(str::to_string)
-                        .unwrap_or_else(|| s.replace('_', " "))
-                })
-                .or(progress.map(|p| p.0))
-                .unwrap_or_default(),
+                step.or(progress.map(|p| p.0))
+                    .map(|s| {
+                        crate::i18n::lookup(&format!("step-{s}"))
+                            .map(str::to_string)
+                            .unwrap_or_else(|| s.replace('_', " "))
+                    })
+                    .unwrap_or_default(),
             ))
             .child(
                 ProgressBar::new(pct.unwrap_or(0.))
