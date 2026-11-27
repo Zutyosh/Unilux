@@ -6,6 +6,8 @@ use std::process::ExitCode;
 use clap::Subcommand;
 use unilux_service::Service;
 
+use unilux_i18n::{t, t_args};
+
 use crate::output::Out;
 
 #[derive(Subcommand)]
@@ -158,7 +160,7 @@ pub async fn prefix(out: &Out, svc: &Service, cmd: PrefixCmd) -> ExitCode {
         PrefixCmd::Move { dir } => {
             let dir = std::path::absolute(&dir).unwrap_or(dir);
             out.result(svc.move_prefix(dir).await, |p| {
-                format!("The prefix now lives in {}.", p.display())
+                t_args("cli-prefix-moved", &[("path", p.display().to_string())])
             })
         }
     }
@@ -168,13 +170,13 @@ pub async fn proton(out: &Out, svc: &Service, cmd: ProtonCmd) -> ExitCode {
     match cmd {
         ProtonCmd::List => out.ok(&svc.proton_installed(), |v| {
             if v.is_empty() {
-                return "No Proton installed by Unilux.".into();
+                return t("cli-proton-none").into();
             }
             joined(v, |p| {
                 let patches = match (&p.patches.bundle, p.patches.intact) {
                     (Some(b), true) => b.clone(),
-                    (Some(b), false) => format!("{b} (changed)"),
-                    (None, _) => "no patches".into(),
+                    (Some(b), false) => t_args("cli-proton-changed", &[("bundle", b.clone())]),
+                    (None, _) => t("cli-proton-no-patches").into(),
                 };
                 format!(
                     "{}{}  {}  {patches}",
@@ -188,38 +190,51 @@ pub async fn proton(out: &Out, svc: &Service, cmd: ProtonCmd) -> ExitCode {
             out.result(svc.proton_releases(&provider, refresh).await, |v| {
                 joined(v, |r| {
                     let p = match r.patches {
-                        Some(unilux_patches::TargetStatus::Verified) => "patches verified",
-                        Some(unilux_patches::TargetStatus::Untested) => "patches untested",
-                        _ => "no patches",
+                        Some(unilux_patches::TargetStatus::Verified) => {
+                            t("cli-proton-patches-verified")
+                        }
+                        Some(unilux_patches::TargetStatus::Untested) => {
+                            t("cli-proton-patches-untested")
+                        }
+                        _ => t("cli-proton-no-patches"),
                     };
                     let date = r
                         .published_at
                         .as_deref()
                         .and_then(|d| d.get(..10))
                         .unwrap_or("");
+                    let installed = if r.installed {
+                        format!("  {}", t("cli-proton-installed-tag"))
+                    } else {
+                        String::new()
+                    };
                     format!(
-                        "{}{}  {date}  {p}{}",
+                        "{}{}  {date}  {p}{installed}",
                         if r.in_use { "* " } else { "  " },
                         r.id,
-                        if r.installed { "  installed" } else { "" }
                     )
                 })
             })
         }
         ProtonCmd::Install { id } => match parse_id(&id) {
             Ok(id) => out.result(svc.proton_install(id).await, |p| {
-                format!("Installed in {}", p.display())
+                t_args(
+                    "cli-proton-installed-in",
+                    &[("path", p.display().to_string())],
+                )
             }),
             Err(e) => out.error(&e),
         },
         ProtonCmd::Use { id, force } => match parse_id(&id) {
             Ok(id) => out.result(svc.proton_use(id.clone(), force).await, |_| {
-                format!("Somnium now uses {id}.")
+                t_args("cli-proton-used", &[("proton", id.to_string())])
             }),
             Err(e) => out.error(&e),
         },
         ProtonCmd::Remove { id } => match parse_id(&id) {
-            Ok(id) => out.result(svc.proton_remove(&id), |_| format!("Removed {id}.")),
+            Ok(id) => out.result(svc.proton_remove(&id), |_| {
+                t_args("cli-removed", &[("id", id.to_string())])
+            }),
             Err(e) => out.error(&e),
         },
     }
@@ -228,13 +243,14 @@ pub async fn proton(out: &Out, svc: &Service, cmd: ProtonCmd) -> ExitCode {
 pub async fn patch(out: &Out, svc: &Service, cmd: PatchCmd) -> ExitCode {
     match cmd {
         PatchCmd::Status => out.ok(&svc.status().patches, |p| match p {
-            None => "No Proton selected.".into(),
+            None => t("cli-patch-no-proton").into(),
             Some(s) => match (&s.bundle, s.intact) {
-                (None, _) => "No patch bundle installed.".into(),
-                (Some(b), true) => format!("{b}: installed, files intact."),
-                (Some(b), false) => {
-                    format!("{b}: files changed since install: {}", s.changed.join(", "))
-                }
+                (None, _) => t("cli-patch-none").into(),
+                (Some(b), true) => t_args("cli-patch-intact", &[("bundle", b.clone())]),
+                (Some(b), false) => t_args(
+                    "cli-patch-changed",
+                    &[("bundle", b.clone()), ("files", s.changed.join(", "))],
+                ),
             },
         }),
         PatchCmd::List => out.result(svc.patch_list(), |v| {
@@ -250,20 +266,25 @@ pub async fn patch(out: &Out, svc: &Service, cmd: PatchCmd) -> ExitCode {
             {
                 Some(id) => out.ok(&cat.resolve(&id), |v| {
                     if v.is_empty() {
-                        format!("No bundle for {id}.")
+                        t_args("cli-patch-no-bundle-for", &[("proton", id.to_string())])
                     } else {
                         joined(v, |m| format!("{} ({:?})", m.bundle.id, m.status))
                     }
                 }),
                 None => out.ok(&cat, |c| {
+                    let bundles = c
+                        .bundles
+                        .iter()
+                        .map(|b| b.id.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", ");
                     format!(
-                        "Recommended: {}\nBundles: {}",
-                        c.recommended_proton,
-                        c.bundles
-                            .iter()
-                            .map(|b| b.id.as_str())
-                            .collect::<Vec<_>>()
-                            .join(", ")
+                        "{}\n{}",
+                        t_args(
+                            "cli-patch-recommended",
+                            &[("proton", c.recommended_proton.to_string())]
+                        ),
+                        t_args("cli-patch-bundles", &[("bundles", bundles)])
                     )
                 }),
             }
@@ -282,15 +303,17 @@ pub async fn patch(out: &Out, svc: &Service, cmd: PatchCmd) -> ExitCode {
                 {
                     return out.error(&e);
                 }
-                out.result(r, |p| format!("Bundle: {}", p.display()))
+                out.result(r, |p| {
+                    t_args("cli-bundle-path", &[("path", p.display().to_string())])
+                })
             }
             Err(e) => out.error(&e),
         },
         PatchCmd::Apply { bundle } => out.result(svc.patch_apply(bundle).await, |_| {
-            "Bundle installed.".into()
+            t("cli-bundle-installed").into()
         }),
         PatchCmd::Restore => out.result(svc.patch_restore(), |n| {
-            format!("Restored {n} stock files.")
+            t_args("cli-patch-restored", &[("count", n.to_string())])
         }),
     }
 }
@@ -303,20 +326,23 @@ fn read_file(p: &std::path::Path) -> Result<String, unilux_core::Error> {
 fn recipe_line(r: &unilux_service::RecipeInfo) -> String {
     let mut tags = Vec::new();
     if r.builtin {
-        tags.push("built-in");
+        tags.push(t("cli-recipe-builtin"));
     }
     if r.custom_code {
-        tags.push("custom patches");
+        tags.push(t("cli-recipe-custom"));
     }
     if !r.needs_build {
-        tags.push("no build");
+        tags.push(t("cli-recipe-no-build"));
     }
     format!(
-        "{}{}  {}  proton: {}  [{}]{}",
+        "{}{}  {}  {}  [{}]{}",
         if r.active { "* " } else { "  " },
         r.id,
         r.title,
-        r.proton.as_deref().unwrap_or("as picked"),
+        match &r.proton {
+            Some(p) => t_args("cli-recipe-proton", &[("proton", p.clone())]),
+            None => t("cli-recipe-proton-any").into(),
+        },
         r.ingredients.join(", "),
         if tags.is_empty() {
             String::new()
@@ -348,31 +374,28 @@ pub async fn recipe(out: &Out, svc: &Service, cmd: RecipeCmd) -> ExitCode {
         ),
         RecipeCmd::Import { file } => {
             out.result(read_file(&file).and_then(|t| svc.recipe_import(&t)), |r| {
-                format!(
-                    "Saved recipe {}.{}",
-                    r.id,
-                    if r.custom_code {
-                        " It brings its own Wine patches: read them before building."
-                    } else {
-                        ""
-                    }
-                )
+                let values = [("id", r.id.clone())];
+                if r.custom_code {
+                    t_args("cli-recipe-saved-custom", &values)
+                } else {
+                    t_args("cli-recipe-saved", &values)
+                }
             })
         }
-        RecipeCmd::Remove { id } => {
-            out.result(svc.recipe_delete(&id), |_| format!("Removed {id}."))
-        }
+        RecipeCmd::Remove { id } => out.result(svc.recipe_delete(&id), |_| {
+            t_args("cli-removed", &[("id", id.clone())])
+        }),
         RecipeCmd::Build { id, proton, force } => {
             let proton = match proton.map(|p| parse_id(&p)).transpose() {
                 Ok(p) => p,
                 Err(e) => return out.error(&e),
             };
             out.result(svc.recipe_build(id.as_deref(), proton, force).await, |p| {
-                format!("Bundle: {}", p.display())
+                t_args("cli-bundle-path", &[("path", p.display().to_string())])
             })
         }
         RecipeCmd::Use { id } => out.result(svc.recipe_use(&id).await, |_| {
-            format!("Somnium now uses the recipe {id}.")
+            t_args("cli-recipe-used", &[("id", id.clone())])
         }),
         RecipeCmd::Key { file, proton } => {
             let r = parse_id(&proton).and_then(|p| {
@@ -391,23 +414,25 @@ pub async fn recipe(out: &Out, svc: &Service, cmd: RecipeCmd) -> ExitCode {
 fn verdict_text(v: &unilux_patches::community::Verdict) -> String {
     let pct = |x: Option<f32>| {
         x.map(|s| format!("{:.0} %", s * 100.0))
-            .unwrap_or_else(|| "n/a".into())
+            .unwrap_or_else(|| t("cli-na").into())
     };
-    let mut s = format!(
-        "{:?}: {} report(s), {} configuration(s), {:.1} h, {} world(s), crashes in game {} (on exit {}), videos {}, pacing (1 % low / avg) {}{}",
-        v.status,
-        v.reports,
-        v.configs,
-        v.hours,
-        v.worlds,
-        v.crashes_in_game,
-        v.crashes_on_exit,
-        pct(v.video_success),
-        pct(v.pacing),
-        v.avg_fps
-            .map(|f| format!(", {f:.0} fps"))
-            .unwrap_or_default()
+    let mut s = t_args(
+        "cli-verdict",
+        &[
+            ("status", format!("{:?}", v.status)),
+            ("reports", v.reports.to_string()),
+            ("configs", v.configs.to_string()),
+            ("hours", format!("{:.1}", v.hours)),
+            ("worlds", v.worlds.to_string()),
+            ("crashes", v.crashes_in_game.to_string()),
+            ("exits", v.crashes_on_exit.to_string()),
+            ("videos", pct(v.video_success)),
+            ("pacing", pct(v.pacing)),
+        ],
     );
+    if let Some(fps) = v.avg_fps {
+        s.push_str(&t_args("cli-verdict-fps", &[("fps", format!("{fps:.0}"))]));
+    }
     for p in &v.problems {
         s.push_str(&format!("\n  - {p}"));
     }
@@ -424,11 +449,16 @@ async fn recipe_evidence(out: &Out, svc: &Service, cmd: RecipeCmd) -> ExitCode {
             }
             out.result(r, |s| {
                 if s.prefilled {
-                    format!("Open this to submit (everything is filled in):\n{}", s.url)
+                    format!("{}\n{}", t("cli-share-open"), s.url)
                 } else {
                     format!(
-                        "Too long for a link. Open:\n{}\nand paste the recipe into \"Recipe\":\n\n{}\nand this into \"Session reports\":\n\n{}",
-                        s.url, s.recipe, s.reports
+                        "{}\n{}\n{}\n\n{}\n{}\n\n{}",
+                        t("cli-share-too-long"),
+                        s.url,
+                        t("cli-share-paste-recipe"),
+                        s.recipe,
+                        t("cli-share-paste-reports"),
+                        s.reports
                     )
                 }
             })
@@ -441,32 +471,55 @@ pub async fn session(out: &Out, svc: &Service, cmd: SessionCmd) -> ExitCode {
     match cmd {
         SessionCmd::List => out.ok(&svc.sessions(), |v| {
             if v.is_empty() {
-                return "No session report yet.".into();
+                return t("cli-session-none").into();
             }
             joined(v, |s| {
                 let r = &s.report;
-                format!(
-                    "{}  {}  {} min  {} world(s)  videos {}/{}  {}{}{}",
-                    s.id,
-                    r.recipe.proton,
-                    r.duration_s / 60,
-                    r.worlds,
-                    r.video.opened - r.video.failed.min(r.video.opened),
-                    r.video.opened,
-                    r.perf
-                        .map(|p| format!("{:.0} fps, 1 % low {:.0}", p.avg_fps, p.low1_fps))
-                        .unwrap_or_else(|| "no fps".into()),
+                let perf = r
+                    .perf
+                    .map(|p| {
+                        t_args(
+                            "cli-session-fps",
+                            &[
+                                ("fps", format!("{:.0}", p.avg_fps)),
+                                ("low", format!("{:.0}", p.low1_fps)),
+                            ],
+                        )
+                    })
+                    .unwrap_or_else(|| t("cli-session-no-fps").into());
+                let mut line = t_args(
+                    "cli-session-line",
+                    &[
+                        ("id", s.id.clone()),
+                        ("proton", r.recipe.proton.to_string()),
+                        ("minutes", (r.duration_s / 60).to_string()),
+                        ("worlds", r.worlds.to_string()),
+                        (
+                            "played",
+                            (r.video.opened - r.video.failed.min(r.video.opened)).to_string(),
+                        ),
+                        ("opened", r.video.opened.to_string()),
+                        ("perf", perf),
+                    ],
+                );
+                let tags = [
                     match r.crash {
-                        Some(unilux_patches::community::Crash::InGame) => "  CRASH",
-                        Some(unilux_patches::community::Crash::OnExit) => "  crash on exit",
-                        None => "",
+                        Some(unilux_patches::community::Crash::InGame) => {
+                            Some(t("cli-session-crash"))
+                        }
+                        Some(unilux_patches::community::Crash::OnExit) => {
+                            Some(t("cli-session-crash-exit"))
+                        }
+                        None => None,
                     },
-                    if r.flat { "  (desktop)" } else { "" }
-                ) + if r.video.ytdlp_blocked > 0 {
-                    "  yt-dlp blocked"
-                } else {
-                    ""
+                    r.flat.then(|| t("cli-session-desktop")),
+                    (r.video.ytdlp_blocked > 0).then(|| t("cli-session-ytdlp")),
+                ];
+                for tag in tags.into_iter().flatten() {
+                    line.push_str("  ");
+                    line.push_str(tag);
                 }
+                line
             })
         }),
         SessionCmd::Show { id } => match svc.sessions().into_iter().find(|s| s.id == id) {
@@ -475,7 +528,9 @@ pub async fn session(out: &Out, svc: &Service, cmd: SessionCmd) -> ExitCode {
             }),
             None => out.error(&unilux_core::Error::Invalid(format!("no report {id}"))),
         },
-        SessionCmd::Record => out.result(svc.record_session(None), |s| format!("Saved {}.", s.id)),
+        SessionCmd::Record => out.result(svc.record_session(None), |s| {
+            t_args("cli-session-saved", &[("id", s.id.clone())])
+        }),
     }
 }
 
@@ -483,7 +538,7 @@ pub async fn community(out: &Out, svc: &Service, cmd: CommunityCmd) -> ExitCode 
     match cmd {
         CommunityCmd::List => out.result(svc.community().await, |i| {
             if i.recipes.is_empty() {
-                return "No community recipe yet.".into();
+                return t("cli-community-none").into();
             }
             joined(&i.recipes, |e| {
                 format!(
@@ -493,15 +548,15 @@ pub async fn community(out: &Out, svc: &Service, cmd: CommunityCmd) -> ExitCode 
                     e.title,
                     e.ingredients.join(", "),
                     if e.custom_code {
-                        "  (custom patches)"
+                        format!("  ({})", t("cli-recipe-custom"))
                     } else {
-                        ""
+                        String::new()
                     }
                 )
             })
         }),
         CommunityCmd::Install { id } => out.result(svc.community_install(&id).await, |r| {
-            format!("Saved {}. Try it with `unilux recipe use {}`.", r.id, r.id)
+            t_args("cli-community-saved", &[("id", r.id.clone())])
         }),
         CommunityCmd::Verify { dir } => {
             let r = svc
@@ -534,7 +589,12 @@ pub async fn community(out: &Out, svc: &Service, cmd: CommunityCmd) -> ExitCode 
                 }
                 Ok(idx)
             });
-            out.result(r, |i| format!("{} recipe(s) indexed.", i.recipes.len()))
+            out.result(r, |i| {
+                t_args(
+                    "cli-community-indexed",
+                    &[("count", i.recipes.len().to_string())],
+                )
+            })
         }
     }
 }

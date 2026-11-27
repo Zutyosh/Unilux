@@ -1,6 +1,6 @@
 ### Template for a new Unilux language.
 ### Copy this file to locales/<code>.ftl (for example de.ftl or pt-BR.ftl),
-### replace every {""} with the translation, and add the language to LANGS in src/i18n.rs.
+### replace every {""} with the translation, and add the language to LANGS in crates/unilux-i18n/src/lib.rs.
 ### Keep every { $name } variable listed in the comment above a message.
 ### Numbers such as $count arrive as numbers, so a message can pick its plural:
 ###   { $count ->
@@ -128,6 +128,131 @@ build-sub = {""}
 build-title = {""}
 busy = {""}
 cancel = {""}
+cli-bundle-installed = {""}
+# Variables: $path
+cli-bundle-path = {""}
+# Variables: $count
+cli-community-indexed = {""}
+cli-community-none = {""}
+# Variables: $id
+cli-community-saved = {""}
+# Variables: $id
+cli-doctor-fix = {""}
+cli-doctor-none = {""}
+cli-installed = {""}
+# Variables: $pid
+cli-launched = {""}
+cli-na = {""}
+# Variables: $bundles
+cli-patch-bundles = {""}
+# Variables: $bundle, $files
+cli-patch-changed = {""}
+# Variables: $bundle
+cli-patch-intact = {""}
+# Variables: $proton
+cli-patch-no-bundle-for = {""}
+cli-patch-no-proton = {""}
+cli-patch-none = {""}
+# Variables: $proton
+cli-patch-recommended = {""}
+# Variables: $count
+cli-patch-restored = {""}
+# Variables: $path
+cli-prefix-moved = {""}
+# Variables: $bundle
+cli-proton-changed = {""}
+# Variables: $path
+cli-proton-installed-in = {""}
+cli-proton-installed-tag = {""}
+cli-proton-no-patches = {""}
+cli-proton-none = {""}
+cli-proton-patches-untested = {""}
+cli-proton-patches-verified = {""}
+# Variables: $proton
+cli-proton-used = {""}
+cli-recipe-builtin = {""}
+cli-recipe-custom = {""}
+cli-recipe-no-build = {""}
+# Variables: $proton
+cli-recipe-proton = {""}
+cli-recipe-proton-any = {""}
+# Variables: $id
+cli-recipe-saved = {""}
+# Variables: $id
+cli-recipe-saved-custom = {""}
+# Variables: $id
+cli-recipe-used = {""}
+# Variables: $id
+cli-removed = {""}
+cli-repaired = {""}
+cli-session-crash = {""}
+cli-session-crash-exit = {""}
+cli-session-desktop = {""}
+# Variables: $fps, $low
+cli-session-fps = {""}
+# Variables: $id, $proton, $minutes, $worlds, $played, $opened, $perf
+cli-session-line = {""}
+cli-session-no-fps = {""}
+cli-session-none = {""}
+# Variables: $id
+cli-session-saved = {""}
+cli-session-ytdlp = {""}
+cli-severity-error = {""}
+cli-severity-info = {""}
+cli-severity-warn = {""}
+cli-share-open = {""}
+cli-share-paste-recipe = {""}
+cli-share-paste-reports = {""}
+cli-share-too-long = {""}
+cli-status-installed-no = {""}
+cli-status-installed-yes = {""}
+# Variables: $bundle
+cli-status-patches = {""}
+# Variables: $bundle
+cli-status-patches-changed = {""}
+cli-status-patches-none = {""}
+# Variables: $path
+cli-status-prefix = {""}
+# Variables: $proton
+cli-status-proton = {""}
+cli-status-proton-none = {""}
+# Variables: $recipe
+cli-status-recipe = {""}
+# Variables: $pid
+cli-status-running = {""}
+# Variables: $runtime
+cli-status-runtime = {""}
+cli-status-runtime-none = {""}
+cli-status-vr-not-ready = {""}
+cli-status-vr-ready = {""}
+cli-step-already-done = {""}
+# Variables: $count
+cli-stopped = {""}
+# Variables: $count
+cli-uninstalled = {""}
+# Variables: $version, $current
+cli-update-available-package = {""}
+# Variables: $version, $current
+cli-update-available-self = {""}
+# Variables: $version
+cli-update-current = {""}
+# Variables: $version
+cli-update-installed = {""}
+# Variables: $status, $reports, $configs, $hours, $worlds, $crashes, $exits, $videos, $pacing
+cli-verdict = {""}
+# Variables: $fps
+cli-verdict-fps = {""}
+# Variables: $runtimes
+cli-vr-installed = {""}
+cli-vr-not-ready = {""}
+# Variables: $note
+cli-vr-note = {""}
+# Variables: $layer, $path
+cli-vr-openvr = {""}
+cli-vr-ready = {""}
+# Variables: $runtime, $path
+cli-vr-runtime = {""}
+cli-vr-runtime-none = {""}
 # Variables: $day, $month, $weekday, $hour, $minute
 date-event = {""}
 # Variables: $day, $month, $year, $hour, $minute
@@ -179,6 +304,10 @@ diag-clear-downloads = {""}
 diag-details = {""}
 diag-diagnostics = {""}
 diag-fix = {""}
+diag-fix-clear-downloads-describe = {""}
+diag-fix-clear-openxr-override-describe = {""}
+diag-fix-repair-describe = {""}
+diag-fix-stop-session-describe = {""}
 diag-hide-details = {""}
 diag-info = {""}
 diag-information = {""}

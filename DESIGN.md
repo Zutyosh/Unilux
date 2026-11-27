@@ -56,4 +56,4 @@ Only opacity and transform, 120 to 200 ms. When the desktop asks for reduced mot
 - State the fact, then the fix: "No OpenXR runtime found. Start SteamVR or WiVRn, then connect the headset."
 - No invented numbers, quotes or user counts.
 - No exclamation marks in errors. No "Oops".
-- Every string goes through `crates/unilux-gui/src/i18n.rs` (English and French).
+- Every string goes through `crates/unilux-i18n` (English, French and Scots), shared with the CLI; machine output (MCP, `--json`, reports) is always English.

@@ -1,0 +1,85 @@
+[
+  {
+    "advice": "umu-run needs Python 3.10 or newer. Install it with your package manager.",
+    "args": [
+      [
+        "hint",
+        "none"
+      ]
+    ],
+    "check": "python",
+    "evidence": [
+      "python3 --version did not run"
+    ],
+    "fix": null,
+    "id": "python-missing",
+    "severity": "error",
+    "title": "python3 is not installed"
+  },
+  {
+    "advice": "Proton renders through Vulkan. Install your GPU's Vulkan driver (mesa-vulkan-drivers, vulkan-radeon, nvidia-utils, ...).",
+    "args": [],
+    "check": "gpu",
+    "evidence": [
+      "no *.json in /usr/share/vulkan/icd.d or /etc/vulkan/icd.d"
+    ],
+    "fix": null,
+    "id": "no-vulkan",
+    "severity": "error",
+    "title": "No Vulkan driver found"
+  },
+  {
+    "advice": "Run the installer with Somnium's Windows installer from somniumspace.com.",
+    "args": [],
+    "check": "install",
+    "evidence": [
+      "missing $HOME/.local/share/unilux/prefix/drive_c/Program Files/Somnium Space/Somnium Space Launcher.exe"
+    ],
+    "fix": null,
+    "id": "somnium-missing",
+    "severity": "error",
+    "title": "Somnium Space is not installed in the prefix"
+  },
+  {
+    "advice": null,
+    "args": [],
+    "check": "gpu",
+    "evidence": [],
+    "fix": null,
+    "id": "no-gpu",
+    "severity": "warn",
+    "title": "No GPU found under /sys/class/drm"
+  },
+  {
+    "advice": "No VR runtime is installed. WiVRn suits standalone headsets (Quest, Pico); Monado through Envision suits wired PC headsets.",
+    "args": [],
+    "check": "openxr",
+    "evidence": [],
+    "fix": null,
+    "id": "vr-not-ready",
+    "severity": "warn",
+    "title": "VR is not ready"
+  }
+]
+[
+  {
+    "description": "Re-download and re-apply umu-run, Proton and the patched libraries. Your prefix and Somnium settings stay as they are.",
+    "destructive": false,
+    "id": "repair"
+  },
+  {
+    "description": "Stop Somnium Space and every Wine process in its prefix. Unsaved in-game state is lost.",
+    "destructive": true,
+    "id": "stop_session"
+  },
+  {
+    "description": "Remove the manual OpenXR settings and go back to automatic detection.",
+    "destructive": false,
+    "id": "clear_openxr_override"
+  },
+  {
+    "description": "Delete cached and partial downloads.",
+    "destructive": false,
+    "id": "clear_downloads"
+  }
+]

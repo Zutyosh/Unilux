@@ -676,6 +676,56 @@ mod tests {
         assert_eq!(audit.lines().count(), 2);
     }
 
+    /// run_doctor and list_fixes as an agent reads them, home replaced.
+    async fn machine_text(s: &Server, home: &std::path::Path) -> String {
+        let mut out = String::new();
+        for (name, args) in [
+            ("run_doctor", json!({"network": false})),
+            ("list_fixes", json!({})),
+        ] {
+            let r = call(s, "tools/call", json!({"name": name, "arguments": args})).await;
+            out += &serde_json::to_string_pretty(&r["result"]["structuredContent"]).unwrap();
+            out.push('\n');
+        }
+        out.replace(&home.display().to_string(), "$HOME")
+    }
+
+    /// Agents and bug reports read English that does not move. Rerun with
+    /// UNILUX_BLESS=1 only when a change is intended.
+    #[tokio::test]
+    async fn machine_output_is_stable_english() {
+        let d = tempfile::tempdir().unwrap();
+        let s = server(d.path()).without_audit();
+        let text = machine_text(&s, d.path()).await;
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("testdata/mcp.en.json");
+        if std::env::var_os("UNILUX_BLESS").is_some() {
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(&path, &text).unwrap();
+        }
+        let golden = std::fs::read_to_string(&path).unwrap_or_default();
+        assert!(golden == text, "MCP output changed, see {}", path.display());
+    }
+
+    /// The GUI serves MCP from its own process: a French interface must
+    /// not leak into what agents read.
+    #[tokio::test]
+    async fn interface_language_does_not_reach_agents() {
+        let d = tempfile::tempdir().unwrap();
+        let s = server(d.path()).without_audit();
+        let english = machine_text(&s, d.path()).await;
+        unilux_i18n::set("fr");
+        let after = machine_text(&s, d.path()).await;
+        unilux_i18n::set(unilux_i18n::ENGLISH);
+        assert_ne!(
+            unilux_i18n::t_in("fr", "diag-fix-repair-describe", &[]),
+            unilux_i18n::t_in("en", "diag-fix-repair-describe", &[])
+        );
+        assert!(
+            english == after,
+            "MCP output followed the interface language"
+        );
+    }
+
     #[tokio::test]
     async fn destructive_needs_approval() {
         let d = tempfile::tempdir().unwrap();

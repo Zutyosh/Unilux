@@ -1,0 +1,14 @@
+[package]
+name = "unilux-i18n"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Unilux text in every shipped language (Fluent), shared by the GUI, the CLI and diagnostics"
+
+[dependencies]
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+fluent-bundle = "0.16.0"
+unic-langid = "0.9.6"
+
+[dev-dependencies]
+fluent-syntax = "0.12"

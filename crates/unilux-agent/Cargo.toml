@@ -15,4 +15,5 @@ tokio.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
+unilux-i18n.workspace = true
 unilux-system.workspace = true

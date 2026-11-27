@@ -5,7 +5,7 @@ use unilux_core::Severity;
 use unilux_diag::checks::CHECKS;
 use unilux_diag::{Finding, FixId};
 
-use crate::i18n::{t, t_args, t_named};
+use crate::i18n::{t, t_args};
 use crate::state::{Section, Ui};
 use crate::svc;
 use crate::theme::space;
@@ -57,16 +57,9 @@ fn check_meta(id: &str) -> (&'static str, &'static str) {
     }
 }
 
-/// Title and advice in the interface language; the engine's English when no translation exists.
+/// Title and advice in the interface language.
 fn localized(f: &Finding) -> (String, Option<String>) {
-    let key = format!("finding-{}", f.id);
-    match t_named(&format!("{key}-title"), &f.args) {
-        Some(title) => (
-            title,
-            t_named(&format!("{key}-advice"), &f.args).or_else(|| f.advice.clone()),
-        ),
-        None => (f.title.clone(), f.advice.clone()),
-    }
+    (f.title(), f.advice())
 }
 
 fn fix_label(fix: FixId) -> &'static str {
@@ -86,13 +79,13 @@ fn sev_label(s: Severity) -> &'static str {
     }
 }
 
+/// The compositor settings the VR page shows instead of this page.
+const VR_PERF_OWNED: &[&str] = &["compositor-not-realtime", "amd-power-profile", "xr-overlay"];
+
 /// The VR page owns these: the headset chain and the compositor settings.
 fn vr_owned(f: &Finding) -> bool {
     (f.check == "openxr" && f.fix.is_none())
-        || (f.check == "vr_perf"
-            && (f.title.contains("compositor at realtime")
-                || f.title.contains("VR power profile")
-                || f.title.starts_with("XR overlay")))
+        || (f.check == "vr_perf" && VR_PERF_OWNED.contains(&f.id))
 }
 
 /// The raw evidence of a finding (paths, commands), folded until asked for.
@@ -344,4 +337,17 @@ fn view(mut ui: Ui) -> impl IntoElement {
         .maybe_child((!infos.is_empty()).then(|| group(t("diag-information"), divided(infos))))
         .child(group(t("diag-what-was-checked"), divided(checked)))
         .child(group(t("diag-ask-help"), divided(help)))
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn vr_page_ids_exist() {
+        for id in super::VR_PERF_OWNED {
+            assert!(
+                unilux_diag::FINDING_IDS.contains(id),
+                "{id} is no finding id"
+            );
+        }
+    }
 }

@@ -3,6 +3,7 @@ use std::process::ExitCode;
 use serde::Serialize;
 use unilux_core::Severity;
 use unilux_diag::Finding;
+use unilux_i18n::{t, t_args};
 use unilux_service::Status;
 
 pub const SCHEMA: u32 = 1;
@@ -64,97 +65,134 @@ impl Out {
 }
 
 pub fn status(s: &Status) -> String {
+    let patches = match &s.patches {
+        Some(p) if p.bundle.is_some() => {
+            let bundle = p.bundle.clone().unwrap_or_default();
+            if p.intact {
+                t_args("cli-status-patches", &[("bundle", bundle)])
+            } else {
+                t_args("cli-status-patches-changed", &[("bundle", bundle)])
+            }
+        }
+        _ => t("cli-status-patches-none").to_string(),
+    };
     let mut out = vec![
         format!("Unilux {}", s.unilux_version),
-        format!("Installed: {}", if s.installed { "yes" } else { "no" }),
-        format!("Prefix: {}", s.prefix.display()),
-        format!("Recipe: {}", s.recipe),
-        format!("Proton: {}", s.proton.as_deref().unwrap_or("none")),
-        format!(
-            "Patches: {}",
-            match &s.patches {
-                Some(p) if p.bundle.is_some() => format!(
-                    "{}{}",
-                    p.bundle.clone().unwrap_or_default(),
-                    if p.intact { "" } else { " (files changed)" }
-                ),
-                _ => "none".into(),
-            }
+        if s.installed {
+            t("cli-status-installed-yes")
+        } else {
+            t("cli-status-installed-no")
+        }
+        .to_string(),
+        t_args(
+            "cli-status-prefix",
+            &[("path", s.prefix.display().to_string())],
         ),
-        format!(
-            "VR: {}",
-            if s.vr.ready {
-                "ready"
-            } else {
-                "not ready, see unilux vr"
-            }
-        ),
-        format!(
-            "OpenXR runtime: {}",
-            s.runtime
-                .as_ref()
-                .map(|r| r.name.clone().unwrap_or_else(|| r.kind.to_string()))
-                .unwrap_or_else(|| "none".into())
-        ),
+        t_args("cli-status-recipe", &[("recipe", s.recipe.to_string())]),
+        match &s.proton {
+            Some(p) => t_args("cli-status-proton", &[("proton", p.clone())]),
+            None => t("cli-status-proton-none").into(),
+        },
+        patches,
+        if s.vr.ready {
+            t("cli-status-vr-ready")
+        } else {
+            t("cli-status-vr-not-ready")
+        }
+        .to_string(),
+        match &s.runtime {
+            Some(r) => t_args(
+                "cli-status-runtime",
+                &[(
+                    "runtime",
+                    r.name.clone().unwrap_or_else(|| r.kind.to_string()),
+                )],
+            ),
+            None => t("cli-status-runtime-none").into(),
+        },
     ];
     if let Some(pid) = s.session_pid {
-        out.push(format!("Running: pid {pid}"));
+        out.push(t_args("cli-status-running", &[("pid", pid.to_string())]));
     }
     out.join("\n")
 }
 
 pub fn vr(v: &unilux_system::VrStatus) -> String {
     let mut out = vec![match &v.active {
-        Some(r) => format!(
-            "OpenXR runtime: {} ({})",
-            r.name.clone().unwrap_or_else(|| r.kind.to_string()),
-            r.manifest.display()
+        Some(r) => t_args(
+            "cli-vr-runtime",
+            &[
+                (
+                    "runtime",
+                    r.name.clone().unwrap_or_else(|| r.kind.to_string()),
+                ),
+                ("path", r.manifest.display().to_string()),
+            ],
         ),
-        None => "OpenXR runtime: none active".into(),
+        None => t("cli-vr-runtime-none").into(),
     }];
     if !v.installed.is_empty() {
-        out.push(format!(
-            "Installed: {}",
-            v.installed
-                .iter()
-                .map(|k| k.to_string())
-                .collect::<Vec<_>>()
-                .join(", ")
-        ));
+        let runtimes = v
+            .installed
+            .iter()
+            .map(|k| k.to_string())
+            .collect::<Vec<_>>()
+            .join(", ");
+        out.push(t_args("cli-vr-installed", &[("runtimes", runtimes)]));
     }
     if let Some(o) = &v.openvr {
-        out.push(format!(
-            "OpenVR layer: {:?} ({})",
-            o.layer,
-            o.path.display()
+        out.push(t_args(
+            "cli-vr-openvr",
+            &[
+                ("layer", format!("{:?}", o.layer)),
+                ("path", o.path.display().to_string()),
+            ],
         ));
     }
-    out.push(if v.ready {
-        "Ready.".into()
-    } else {
-        "Not ready:".into()
-    });
+    out.push(
+        if v.ready {
+            t("cli-vr-ready")
+        } else {
+            t("cli-vr-not-ready")
+        }
+        .into(),
+    );
     out.extend(v.blockers.iter().map(|b| format!("  - {b}")));
-    out.extend(v.notes.iter().map(|n| format!("  note: {n}")));
+    out.extend(
+        v.notes
+            .iter()
+            .map(|n| format!("  {}", t_args("cli-vr-note", &[("note", n.clone())]))),
+    );
     out.join("\n")
+}
+
+/// Severity tags padded to one width, so the titles line up in any language.
+fn severity_tag(s: Severity) -> String {
+    let tags = [
+        t("cli-severity-error"),
+        t("cli-severity-warn"),
+        t("cli-severity-info"),
+    ];
+    let width = tags.iter().map(|t| t.chars().count()).max().unwrap_or(0);
+    let tag = match s {
+        Severity::Error => tags[0],
+        Severity::Warn => tags[1],
+        Severity::Info => tags[2],
+    };
+    format!("{tag:<width$}")
 }
 
 pub fn findings(v: &[Finding]) -> String {
     if v.is_empty() {
-        return "No problems found.".into();
+        return t("cli-doctor-none").into();
     }
     v.iter()
         .map(|f| {
-            let tag = match f.severity {
-                Severity::Error => "error",
-                Severity::Warn => "warn ",
-                Severity::Info => "info ",
-            };
-            let mut s = format!("[{tag}] {}", f.title);
+            let mut s = format!("[{}] {}", severity_tag(f.severity), f.title());
             for e in &f.evidence {
                 s.push_str(&format!("\n        {e}"));
             }
-            if let Some(a) = &f.advice {
+            if let Some(a) = f.advice() {
                 s.push_str(&format!("\n        -> {a}"));
             }
             if let Some(fix) = f.fix {
@@ -162,7 +200,10 @@ pub fn findings(v: &[Finding]) -> String {
                     .ok()
                     .and_then(|v| v.as_str().map(str::to_string))
                     .unwrap_or_default();
-                s.push_str(&format!("\n        fix: unilux fix {id}"));
+                s.push_str(&format!(
+                    "\n        {}",
+                    t_args("cli-doctor-fix", &[("id", id)])
+                ));
             }
             s
         })

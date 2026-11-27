@@ -58,7 +58,7 @@ pub struct Status {
 #[derive(Debug, Clone, Serialize)]
 pub struct FixOutcome {
     pub fix: FixId,
-    pub description: &'static str,
+    pub description: String,
     pub destructive: bool,
     pub applied: bool,
     pub message: String,

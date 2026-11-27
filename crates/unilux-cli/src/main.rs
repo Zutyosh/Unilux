@@ -13,6 +13,7 @@ use std::process::ExitCode;
 use clap::{Parser, Subcommand};
 use unilux_core::{Event, LogSource};
 use unilux_diag::FixId;
+use unilux_i18n::{t, t_args};
 use unilux_service::{InstallOptions, LaunchOpts, Service};
 
 use output::Out;
@@ -160,8 +161,12 @@ async fn run(cli: Cli) -> ExitCode {
     }
     let svc = match Service::from_env() {
         Ok(s) => s,
-        Err(e) => return out.error(&e),
+        Err(e) => {
+            unilux_i18n::set(unilux_i18n::resolve(None));
+            return out.error(&e);
+        }
     };
+    unilux_i18n::set(unilux_i18n::resolve(svc.config().locale.as_deref()));
     if !cli.json {
         spawn_progress_printer(&svc);
     }
@@ -193,22 +198,22 @@ async fn run(cli: Cli) -> ExitCode {
                 unilux_exe: std::env::current_exe().ok(),
                 ..Default::default()
             };
-            out.result(svc.install(opts).await, |_| {
-                "Somnium Space is installed. Start it with `unilux launch` or from the menu.".into()
-            })
+            out.result(svc.install(opts).await, |_| t("cli-installed").into())
         }
-        Cmd::Repair => out.result(svc.repair().await, |_| "Repair finished.".into()),
+        Cmd::Repair => out.result(svc.repair().await, |_| t("cli-repaired").into()),
         Cmd::Uninstall { remove_prefix } => out.result(svc.uninstall(remove_prefix).await, |v| {
-            format!("Removed {} items.", v.len())
+            t_args("cli-uninstalled", &[("count", v.len().to_string())])
         }),
         Cmd::Launch { flat, detach } => {
             let r = svc.launch(LaunchOpts { allow_flat: flat }).await;
             if let (Ok(_), false) = (&r, detach) {
                 svc.wait_session().await;
             }
-            out.result(r, |pid| format!("Somnium Space started (pid {pid})."))
+            out.result(r, |pid| t_args("cli-launched", &[("pid", pid.to_string())]))
         }
-        Cmd::Stop => out.result(svc.stop().await, |n| format!("Stopped {n} processes.")),
+        Cmd::Stop => out.result(svc.stop().await, |n| {
+            t_args("cli-stopped", &[("count", n.to_string())])
+        }),
         Cmd::Doctor { offline } => {
             let f = svc.doctor(!offline).await;
             let failed = f.iter().any(|f| f.severity == unilux_core::Severity::Error);
@@ -245,21 +250,27 @@ async fn run(cli: Cli) -> ExitCode {
                 Err(e) => return out.error(&e),
             };
             match (&info.available, check) {
-                (None, _) => out.ok(&info, |i| format!("Unilux {} is up to date.", i.current)),
+                (None, _) => out.ok(&info, |i| {
+                    t_args("cli-update-current", &[("version", i.current.to_string())])
+                }),
                 (Some(_), true) => out.ok(&info, |i| {
                     let r = i.available.as_ref().expect("checked");
-                    let how = if i.can_apply {
-                        "Run `unilux self-update` to install it."
+                    let values = [
+                        ("version", r.version.to_string()),
+                        ("current", i.current.to_string()),
+                    ];
+                    let text = if i.can_apply {
+                        t_args("cli-update-available-self", &values)
                     } else {
-                        "Update it with your package manager."
+                        t_args("cli-update-available-package", &values)
                     };
-                    format!(
-                        "Unilux {} is available (you have {}). {how}\n{}",
-                        r.version, i.current, r.url
-                    )
+                    format!("{text}\n{}", r.url)
                 }),
                 (Some(_), false) => out.result(svc.update_apply().await, |a| {
-                    format!("Unilux {} installed. Restart Unilux to use it.", a.version)
+                    t_args(
+                        "cli-update-installed",
+                        &[("version", a.version.to_string())],
+                    )
                 }),
             }
         }
@@ -315,7 +326,9 @@ fn spawn_progress_printer(svc: &Service) {
         while let Ok(ev) = rx.recv().await {
             match ev {
                 Event::StepStarted { step } => eprintln!("> {}", step.replace('_', " ")),
-                Event::StepFinished { skipped: true, .. } => eprintln!("  already done"),
+                Event::StepFinished { skipped: true, .. } => {
+                    eprintln!("  {}", t("cli-step-already-done"))
+                }
                 Event::Notice { severity, message } => eprintln!("  {severity:?}: {message}"),
                 Event::Progress {
                     task,

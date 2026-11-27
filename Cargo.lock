@@ -5136,6 +5136,7 @@ dependencies = [
  "unilux-components",
  "unilux-core",
  "unilux-diag",
+ "unilux-i18n",
  "unilux-service",
  "unilux-system",
 ]
@@ -5153,6 +5154,7 @@ dependencies = [
  "unilux-components",
  "unilux-core",
  "unilux-diag",
+ "unilux-i18n",
  "unilux-patches",
  "unilux-service",
  "unilux-system",
@@ -5200,6 +5202,7 @@ dependencies = [
  "tempfile",
  "unilux-components",
  "unilux-core",
+ "unilux-i18n",
  "unilux-install",
  "unilux-patches",
  "unilux-system",
@@ -5210,23 +5213,31 @@ name = "unilux-gui"
 version = "0.3.2"
 dependencies = [
  "chrono",
- "fluent-bundle",
- "fluent-syntax",
  "freya",
  "freya-testing",
  "rfd",
  "serde_json",
  "tempfile",
  "tokio",
- "unic-langid",
  "unilux-agent",
  "unilux-components",
  "unilux-core",
  "unilux-diag",
+ "unilux-i18n",
  "unilux-patches",
  "unilux-service",
  "unilux-system",
  "unilux-update",
+]
+
+[[package]]
+name = "unilux-i18n"
+version = "0.3.2"
+dependencies = [
+ "chrono",
+ "fluent-bundle",
+ "fluent-syntax",
+ "unic-langid",
 ]
 
 [[package]]

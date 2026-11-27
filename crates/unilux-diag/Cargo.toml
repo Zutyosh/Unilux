@@ -6,6 +6,7 @@ license.workspace = true
 
 [dependencies]
 unilux-core.workspace = true
+unilux-i18n.workspace = true
 unilux-system.workspace = true
 unilux-components.workspace = true
 unilux-install.workspace = true
