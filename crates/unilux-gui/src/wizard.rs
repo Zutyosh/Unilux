@@ -104,7 +104,7 @@ impl Component for WizardScreen {
                 }
                 match e.file_paths.iter().find(|p| is_exe(p)) {
                     Some(p) => start(w, Some(p.clone())),
-                    None => failed.set(Some(t("wiz.source.not_exe").into())),
+                    None => failed.set(Some(t("wiz-source-not_exe").into())),
                 }
             })
             .child(app::brand())
@@ -237,13 +237,13 @@ fn welcome(mut w: Wiz) -> impl IntoElement {
     let mut problems: Vec<String> = Vec::new();
     match sys.python {
         Some(p) if !p.supported() => {
-            problems.push(format!("Python {p}: {}", t("wiz.sys.python_old")))
+            problems.push(format!("Python {p}: {}", t("wiz-sys-python_old")))
         }
-        None => problems.push(t("wiz.sys.python_missing").into()),
+        None => problems.push(t("wiz-sys-python_missing").into()),
         _ => {}
     }
     if sys.vulkan_icds.is_empty() {
-        problems.push(t("wiz.sys.vulkan").into());
+        problems.push(t("wiz-sys-vulkan").into());
     }
     let blocking = !problems.is_empty();
     rect()
@@ -251,8 +251,8 @@ fn welcome(mut w: Wiz) -> impl IntoElement {
         .cross_align(Alignment::Center)
         .spacing(space::L)
         .child(app::logo(112.))
-        .child(centered(display(t("wiz.welcome.title"))))
-        .child(centered(lead(t("wiz.welcome.body"))))
+        .child(centered(display(t("wiz-welcome-title"))))
+        .child(centered(lead(t("wiz-welcome-body"))))
         .children(
             problems
                 .into_iter()
@@ -270,7 +270,7 @@ fn welcome(mut w: Wiz) -> impl IntoElement {
                 .collect::<Vec<_>>(),
         )
         .child(actions(vec![
-            primary(t("wiz.start"))
+            primary(t("wiz-start"))
                 .enabled(!blocking)
                 .on_press(move |_| w.page.set(Page::Proton))
                 .into_element(),
@@ -291,8 +291,8 @@ fn proton(mut w: Wiz) -> impl IntoElement {
         .width(Size::fill())
         .cross_align(Alignment::Center)
         .spacing(space::L)
-        .child(centered(title(t("wiz.proton.title"))))
-        .child(centered(lead(t("wiz.proton.body"))))
+        .child(centered(title(t("wiz-proton-title"))))
+        .child(centered(lead(t("wiz-proton-body"))))
         .child(
             rect().width(Size::fill()).spacing(space::S).children(
                 options
@@ -346,12 +346,12 @@ fn proton(mut w: Wiz) -> impl IntoElement {
                                             .child(body(name))
                                             .child(muted(format!(
                                                 "{provider}, {}",
-                                                t("prefs.patch.verified")
+                                                t("prefs-patch-verified")
                                             ))),
                                     )
                                     .maybe_child(
                                         (id == recommended).then(|| {
-                                            chip(t("wiz.proton.recommended"), Tone::Accent)
+                                            chip(t("wiz-proton-recommended"), Tone::Accent)
                                         }),
                                     ),
                             )
@@ -360,12 +360,12 @@ fn proton(mut w: Wiz) -> impl IntoElement {
                     .collect::<Vec<_>>(),
             ),
         )
-        .child(centered(muted(t("wiz.proton.more"))))
+        .child(centered(muted(t("wiz-proton-more"))))
         .child(actions(vec![
-            link(t("wiz.back"))
+            link(t("wiz-back"))
                 .on_press(move |_| w.page.set(Page::Welcome))
                 .into_element(),
-            primary(t("wiz.next"))
+            primary(t("wiz-next"))
                 .on_press(move |_| w.page.set(Page::Account))
                 .into_element(),
         ]))
@@ -447,7 +447,7 @@ fn source(mut w: Wiz, hover: bool) -> impl IntoElement {
                 if is_exe(&p) {
                     start(w, Some(p));
                 } else {
-                    failed.set(Some(t("wiz.source.not_exe").into()));
+                    failed.set(Some(t("wiz-source-not_exe").into()));
                 }
             }
         });
@@ -458,21 +458,21 @@ fn source(mut w: Wiz, hover: bool) -> impl IntoElement {
             .cross_align(Alignment::Center)
             .spacing(space::M)
             .padding((space::XXL, 0.))
-            .child(centered(title(t("wiz.source.drop_now")).color(T.accent)))
-            .child(centered(body(t("wiz.source.drop_hint")).color(T.text)));
+            .child(centered(title(t("wiz-source-drop_now")).color(T.accent)))
+            .child(centered(body(t("wiz-source-drop_hint")).color(T.text)));
     }
     rect()
         .width(Size::fill())
         .cross_align(Alignment::Center)
         .spacing(space::L)
-        .child(centered(title(t("wiz.source.title"))))
+        .child(centered(title(t("wiz-source-title"))))
         .child(centered(lead(format!(
             "{} {}.",
-            t("wiz.source.body"),
+            t("wiz-source-body"),
             language_name()
         ))))
         .child(actions(vec![
-            primary(t("wiz.source.download"))
+            primary(t("wiz-source-download"))
                 .on_press(move |_| start(w, None))
                 .into_element(),
         ]))
@@ -493,19 +493,19 @@ fn source(mut w: Wiz, hover: bool) -> impl IntoElement {
                     rect()
                         .width(Size::flex(1.))
                         .spacing(2.)
-                        .child(body(t("wiz.source.have")))
-                        .child(muted(t("wiz.source.drop")).color(alpha(T.text, 0.7))),
+                        .child(body(t("wiz-source-have")))
+                        .child(muted(t("wiz-source-drop")).color(alpha(T.text, 0.7))),
                 )
                 .child(
                     Button::new()
                         .corner_radius(RADIUS_PILL)
                         .on_press(browse)
-                        .child(t("wiz.source.browse")),
+                        .child(t("wiz-source-browse")),
                 ),
         )
         .maybe_child(error.map(|e| centered(body(e).color(T.error))))
         .child(actions(vec![
-            link(t("wiz.back"))
+            link(t("wiz-back"))
                 .on_press(move |_| w.page.set(Page::Account))
                 .into_element(),
         ]))
@@ -515,7 +515,7 @@ fn source(mut w: Wiz, hover: bool) -> impl IntoElement {
 fn account(mut w: Wiz) -> impl IntoElement {
     let signed_in = w.ui.account.read().is_some();
     let next: Element = if signed_in {
-        primary(t("wiz.next"))
+        primary(t("wiz-next"))
             .on_press(move |_| w.page.set(Page::Source))
             .into_element()
     } else {
@@ -536,7 +536,7 @@ fn account(mut w: Wiz) -> impl IntoElement {
         ))))
         .child(crate::events::AccountForm(w.ui))
         .child(actions(vec![
-            link(t("wiz.back"))
+            link(t("wiz-back"))
                 .on_press(move |_| w.page.set(Page::Proton))
                 .into_element(),
             next,
@@ -569,23 +569,23 @@ fn installing(mut w: Wiz, phrase: usize) -> impl IntoElement {
     let heading = current
         .as_deref()
         .map(step)
-        .unwrap_or_else(|| t("wiz.installing.title").to_string());
+        .unwrap_or_else(|| t("wiz-installing-title").to_string());
     if let Some(e) = error {
         return rect()
             .width(Size::fill())
             .cross_align(Alignment::Center)
             .spacing(space::L)
-            .child(centered(title(t("wiz.failed.title"))))
+            .child(centered(title(t("wiz-failed-title"))))
             .child(centered(body(e).color(T.error)))
-            .child(centered(muted(t("wiz.failed.hint"))))
+            .child(centered(muted(t("wiz-failed-hint"))))
             .child(actions(vec![
-                link(t("wiz.back"))
+                link(t("wiz-back"))
                     .on_press(move |_| {
                         w.failed.set(None);
                         w.page.set(Page::Source)
                     })
                     .into_element(),
-                primary(t("wiz.failed.retry"))
+                primary(t("wiz-failed-retry"))
                     .on_press(move |_| {
                         let exe = w.picked.peek().clone();
                         start(w, exe)
@@ -605,7 +605,7 @@ fn installing(mut w: Wiz, phrase: usize) -> impl IntoElement {
         .spacing(space::L)
         .child(crate::loader::OrbitLoader)
         .child(centered(title(heading)))
-        .child(centered(lead(t(&format!("load.{}", phrase % PHRASES)))))
+        .child(centered(lead(t(&format!("load-{}", phrase % PHRASES)))))
         .child(
             rect()
                 .width(Size::px(420.))
@@ -623,12 +623,12 @@ fn installing(mut w: Wiz, phrase: usize) -> impl IntoElement {
                         .child(muted(detail.unwrap_or_default()))
                         .child(muted(format!(
                             "{} {index} / {}",
-                            t("wiz.installing.step"),
+                            t("wiz-installing-step"),
                             STEPS.len()
                         ))),
                 ),
         )
-        .child(centered(muted(t("wiz.installing.hint"))))
+        .child(centered(muted(t("wiz-installing-hint"))))
 }
 
 fn done(mut w: Wiz) -> impl IntoElement {
@@ -637,10 +637,10 @@ fn done(mut w: Wiz) -> impl IntoElement {
         .cross_align(Alignment::Center)
         .spacing(space::L)
         .child(app::logo(112.))
-        .child(centered(display(t("wiz.done.title"))))
-        .child(centered(lead(t("wiz.done.body"))))
+        .child(centered(display(t("wiz-done-title"))))
+        .child(centered(lead(t("wiz-done-body"))))
         .child(actions(vec![
-            primary(t("wiz.done.go"))
+            primary(t("wiz-done-go"))
                 .on_press(move |_| w.ui.screen.set(Screen::Launcher))
                 .into_element(),
         ]))

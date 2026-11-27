@@ -53,9 +53,9 @@ pub(crate) fn when(secs: u64) -> String {
 
 fn worlds(n: u32) -> String {
     if n == 1 {
-        t("ses.world.one").to_string()
+        t("ses-world-one").to_string()
     } else {
-        format!("{n} {}", t("recipes.worlds"))
+        format!("{n} {}", t("recipes-worlds"))
     }
 }
 
@@ -229,8 +229,8 @@ pub(crate) fn tiles(items: Vec<Element>) -> Element {
 
 fn crash_chip(c: Option<Crash>) -> Option<Rect> {
     match c? {
-        Crash::InGame => Some(chip(t("recipes.crash"), Tone::Error)),
-        Crash::OnExit => Some(chip(t("recipes.crash.exit"), Tone::Neutral)),
+        Crash::InGame => Some(chip(t("recipes-crash"), Tone::Error)),
+        Crash::OnExit => Some(chip(t("recipes-crash-exit"), Tone::Neutral)),
     }
 }
 
@@ -266,16 +266,16 @@ impl Component for SessionsTab {
             }
         });
         let recording = group(
-            t("recipes.sessions.title"),
+            t("recipes-sessions-title"),
             vec![
                 row(
-                    t("recipes.sessions.record"),
-                    Some(t("recipes.sessions.record.sub").into()),
+                    t("recipes-sessions-record"),
+                    Some(t("recipes-sessions-record-sub").into()),
                     Some(Switch::new(setter).into_element()),
                 ),
                 row(
-                    t("recipes.sessions.last"),
-                    Some(t("recipes.sessions.last.sub").into()),
+                    t("recipes-sessions-last"),
+                    Some(t("recipes-sessions-last-sub").into()),
                     Some(
                         Button::new()
                             .flat()
@@ -286,7 +286,7 @@ impl Component for SessionsTab {
                                     reload.with_mut(|mut n| *n += 1)
                                 })
                             })
-                            .child(t("recipes.sessions.last.button"))
+                            .child(t("recipes-sessions-last-button"))
                             .into_element(),
                     ),
                 ),
@@ -296,10 +296,10 @@ impl Component for SessionsTab {
             return rect()
                 .spacing(space::XL)
                 .child(group(
-                    t("recipes.sessions.saved"),
+                    t("recipes-sessions-saved"),
                     vec![row(
-                        t("recipes.sessions.none"),
-                        Some(t("recipes.sessions.none.sub").into()),
+                        t("recipes-sessions-none"),
+                        Some(t("recipes-sessions-none-sub").into()),
                         None,
                     )],
                 ))
@@ -322,10 +322,10 @@ impl Component for SessionsTab {
             .filter(|s| s.report.crash == Some(Crash::InGame))
             .count();
         let summary = tiles(vec![
-            tile(t("ses.sum.count"), list.len().to_string(), None),
-            tile(t("ses.sum.time"), played, None),
+            tile(t("ses-sum-count"), list.len().to_string(), None),
+            tile(t("ses-sum-time"), played, None),
             tile(
-                t("ses.sum.fps"),
+                t("ses-sum-fps"),
                 if fps.is_empty() {
                     "–".to_string()
                 } else {
@@ -334,7 +334,7 @@ impl Component for SessionsTab {
                 None,
             ),
             tile(
-                t("ses.sum.crash"),
+                t("ses-sum-crash"),
                 crashes.to_string(),
                 (crashes > 0).then_some(Tone::Error),
             ),
@@ -349,17 +349,17 @@ impl Component for SessionsTab {
                 let line1 = format!(
                     "{} {} {}, {}, {}",
                     recipe_name(s),
-                    t("setup.on"),
+                    t("setup-on"),
                     proton_tag(&r.recipe.proton),
                     dur(r.duration_s),
                     worlds(r.worlds)
                 );
                 let line2 = match r.perf {
                     Some(p) => t_with(
-                        "ses.avg_line",
+                        "ses-avg_line",
                         &[format!("{:.0}", p.avg_fps), format!("{:.0}", p.low1_fps)],
                     ),
-                    None => t("ses.no_perf").to_string(),
+                    None => t("ses-no_perf").to_string(),
                 };
                 let mut open = open;
                 Button::new()
@@ -383,7 +383,7 @@ impl Component for SessionsTab {
                                     .child(muted(line2)),
                             )
                             .maybe_child(tl.as_ref().map(spark))
-                            .maybe_child(r.flat.then(|| chip(t("recipes.desktop"), Tone::Neutral)))
+                            .maybe_child(r.flat.then(|| chip(t("recipes-desktop"), Tone::Neutral)))
                             .maybe_child(crash_chip(r.crash))
                             .child(label().text("›").font_size(size::LEAD).color(T.muted)),
                     )
@@ -394,7 +394,7 @@ impl Component for SessionsTab {
         rect()
             .spacing(space::XL)
             .child(summary)
-            .child(group(t("recipes.sessions.saved"), rows))
+            .child(group(t("recipes-sessions-saved"), rows))
             .child(recording)
             .into_element()
     }
@@ -523,7 +523,7 @@ impl Component for SessionDetail {
                     Button::new()
                         .flat()
                         .on_press(move |_| open.set(None))
-                        .child(format!("← {}", t("ses.back"))),
+                        .child(format!("← {}", t("ses-back"))),
                 )
                 .into_element();
         };
@@ -532,9 +532,9 @@ impl Component for SessionDetail {
         let _ = ui;
 
         let crash_text = match r.crash {
-            None => t("ses.crash.none"),
-            Some(Crash::InGame) => t("recipes.crash"),
-            Some(Crash::OnExit) => t("recipes.crash.exit"),
+            None => t("ses-crash-none"),
+            Some(Crash::InGame) => t("recipes-crash"),
+            Some(Crash::OnExit) => t("recipes-crash-exit"),
         };
         let head = rect()
             .width(Size::fill())
@@ -544,7 +544,7 @@ impl Component for SessionDetail {
                     .compact()
                     .flat()
                     .on_press(move |_| open.set(None))
-                    .child(format!("← {}", t("ses.back"))),
+                    .child(format!("← {}", t("ses-back"))),
             )
             .child(
                 rect()
@@ -561,30 +561,30 @@ impl Component for SessionDetail {
                             .child(muted(format!(
                                 "{} {} {}",
                                 recipe_name(&s),
-                                t("setup.on"),
+                                t("setup-on"),
                                 proton_tag(&r.recipe.proton)
                             ))),
                     )
-                    .maybe_child(r.flat.then(|| chip(t("recipes.desktop"), Tone::Neutral)))
+                    .maybe_child(r.flat.then(|| chip(t("recipes-desktop"), Tone::Neutral)))
                     .maybe_child(crash_chip(r.crash)),
             );
 
         let stats = tiles(vec![
-            tile(t("ses.t.duration"), dur(r.duration_s), None),
+            tile(t("ses-t-duration"), dur(r.duration_s), None),
             tile(
-                t("ses.t.avg"),
+                t("ses-t-avg"),
                 r.perf
                     .map_or("–".to_string(), |p| format!("{:.0} fps", p.avg_fps)),
                 None,
             ),
             tile(
-                t("ses.t.low"),
+                t("ses-t-low"),
                 r.perf
                     .map_or("–".to_string(), |p| format!("{:.0} fps", p.low1_fps)),
                 None,
             ),
             tile(
-                t("ses.t.crash"),
+                t("ses-t-crash"),
                 crash_text,
                 match r.crash {
                     Some(Crash::InGame) => Some(Tone::Error),
@@ -610,12 +610,12 @@ impl Component for SessionDetail {
                 let pts = tl.points.clone();
                 let pts2 = tl.points.clone();
                 let fps_card = chart_card(
-                    t("ses.chart.fps"),
-                    t("ses.chart.fps.sub"),
+                    t("ses-chart-fps"),
+                    t("ses-chart-fps-sub"),
                     &[
-                        (T.accent, t("ses.lg.avg")),
-                        (T.glow, t("ses.lg.min")),
-                        (T.error, t("ses.lg.freeze")),
+                        (T.accent, t("ses-lg-avg")),
+                        (T.glow, t("ses-lg-min")),
+                        (T.error, t("ses-lg-freeze")),
                     ],
                     width,
                     hover,
@@ -640,7 +640,7 @@ impl Component for SessionDetail {
                     marks,
                     move |i| {
                         t_with(
-                            "ses.read.fps",
+                            "ses-read-fps",
                             &[
                                 clock(step * i as f32),
                                 format!("{:.0}", pts[i].fps),
@@ -651,9 +651,9 @@ impl Component for SessionDetail {
                 );
                 let load_card = tl.has_load.then(|| {
                     chart_card(
-                        t("ses.chart.load"),
-                        t("ses.chart.load.sub"),
-                        &[(T.accent, t("ses.lg.gpu")), (T.warn, t("ses.lg.cpu"))],
+                        t("ses-chart-load"),
+                        t("ses-chart-load-sub"),
+                        &[(T.accent, t("ses-lg-gpu")), (T.warn, t("ses-lg-cpu"))],
                         width,
                         hover,
                         n,
@@ -677,7 +677,7 @@ impl Component for SessionDetail {
                         vec![],
                         move |i| {
                             t_with(
-                                "ses.read.load",
+                                "ses-read-load",
                                 &[
                                     clock(step * i as f32),
                                     format!("{:.0}", pts2[i].gpu),
@@ -698,8 +698,8 @@ impl Component for SessionDetail {
                     };
                     banner(
                         Tone::Warn,
-                        t("ses.partial"),
-                        t_with("ses.partial.sub", &[seen, dur(r.duration_s)]),
+                        t("ses-partial"),
+                        t_with("ses-partial-sub", &[seen, dur(r.duration_s)]),
                         None,
                     )
                 });
@@ -712,10 +712,10 @@ impl Component for SessionDetail {
                     .into_element()
             }
             _ => group(
-                t("ses.chart.fps"),
+                t("ses-chart-fps"),
                 vec![row(
-                    t("ses.no_chart"),
-                    Some(t("ses.no_chart.sub").into()),
+                    t("ses-no_chart"),
+                    Some(t("ses-no_chart-sub").into()),
                     None,
                 )],
             )
@@ -727,9 +727,9 @@ impl Component for SessionDetail {
         if let Some(p) = r.perf {
             if let Some(d) = p.dips {
                 slow.push(row(
-                    t("ses.dips"),
+                    t("ses-dips"),
                     Some(t_with(
-                        "ses.dips.sub",
+                        "ses-dips-sub",
                         &[
                             d.episodes.to_string(),
                             format!("{:.0}", d.seconds),
@@ -739,24 +739,24 @@ impl Component for SessionDetail {
                     None,
                 ));
                 let cause = match d.cause {
-                    DipCause::GpuBound => t("ses.cause.gpu_bound"),
-                    DipCause::GpuClock => t("ses.cause.gpu_clock"),
-                    DipCause::GpuWaiting => t("ses.cause.gpu_waiting"),
-                    DipCause::Unknown => t("ses.cause.unknown"),
+                    DipCause::GpuBound => t("ses-cause-gpu_bound"),
+                    DipCause::GpuClock => t("ses-cause-gpu_clock"),
+                    DipCause::GpuWaiting => t("ses-cause-gpu_waiting"),
+                    DipCause::Unknown => t("ses-cause-unknown"),
                 };
                 let mut sub = cause.to_string();
                 if let Some([normal, dip]) = d.gpu_load {
                     sub.push('\n');
                     sub.push_str(&t_with(
-                        "ses.dips.gpu",
+                        "ses-dips-gpu",
                         &[format!("{normal:.0}"), format!("{dip:.0}")],
                     ));
                 }
-                slow.push(row(t("ses.cause"), Some(sub), None));
+                slow.push(row(t("ses-cause"), Some(sub), None));
             }
             if let Some(h) = p.hitches {
                 let mut sub = t_with(
-                    "ses.hitch.sub",
+                    "ses-hitch-sub",
                     &[
                         h.count.to_string(),
                         format!("{HITCH_MS:.0}"),
@@ -765,20 +765,20 @@ impl Component for SessionDetail {
                 );
                 if let Some(period) = h.period_s {
                     sub.push('\n');
-                    sub.push_str(&t_with("ses.hitch.period", &[format!("{period:.0}")]));
+                    sub.push_str(&t_with("ses-hitch-period", &[format!("{period:.0}")]));
                 }
-                slow.push(row(t("ses.hitch"), Some(sub), None));
+                slow.push(row(t("ses-hitch"), Some(sub), None));
             }
             if p.frames > 0 {
                 slow.push(row(
-                    t("ses.stutter"),
-                    Some(t_with("ses.stutter.sub", &[p.stutters.to_string()])),
+                    t("ses-stutter"),
+                    Some(t_with("ses-stutter-sub", &[p.stutters.to_string()])),
                     None,
                 ));
                 slow.push(row(
-                    t("ses.p99"),
+                    t("ses-p99"),
                     Some(t_with(
-                        "ses.p99.sub",
+                        "ses-p99-sub",
                         &[format!("{:.1}", p.p99_frametime_ms)],
                     )),
                     None,
@@ -786,23 +786,23 @@ impl Component for SessionDetail {
             }
         }
         if slow.is_empty() {
-            slow.push(row(t("ses.no_perf"), None, None));
+            slow.push(row(t("ses-no_perf"), None, None));
         }
 
         let played = vec![
             row(
-                t("ses.g.worlds"),
+                t("ses-g-worlds"),
                 None,
                 Some(body(r.worlds.to_string()).into_element()),
             ),
             row(
-                t("ses.g.joins"),
+                t("ses-g-joins"),
                 None,
                 Some(body(r.joins.to_string()).into_element()),
             ),
             row(
-                t("ses.g.videos"),
-                Some(t("ses.g.videos.sub").into()),
+                t("ses-g-videos"),
+                Some(t("ses-g-videos-sub").into()),
                 Some(
                     body(format!(
                         "{}/{}",
@@ -813,25 +813,25 @@ impl Component for SessionDetail {
                 ),
             ),
             row(
-                t("ses.g.errors"),
-                Some(t("ses.g.errors.sub").into()),
+                t("ses-g-errors"),
+                Some(t("ses-g-errors-sub").into()),
                 Some(body(r.exceptions.to_string()).into_element()),
             ),
         ];
 
         let hw = &r.hardware;
         let machine = vec![
-            row(t("ses.hw.gpu"), Some(hw.gpu.clone()), None),
-            row(t("ses.hw.driver"), Some(hw.gpu_driver.clone()), None),
-            row(t("ses.hw.cpu"), Some(hw.cpu.clone()), None),
+            row(t("ses-hw-gpu"), Some(hw.gpu.clone()), None),
+            row(t("ses-hw-driver"), Some(hw.gpu_driver.clone()), None),
+            row(t("ses-hw-cpu"), Some(hw.cpu.clone()), None),
             row(
-                t("ses.hw.ram"),
-                Some(t_with("ses.hw.ram.v", &[hw.ram_gb.to_string()])),
+                t("ses-hw-ram"),
+                Some(t_with("ses-hw-ram-v", &[hw.ram_gb.to_string()])),
                 None,
             ),
-            row(t("ses.hw.os"), Some(hw.distro.clone()), None),
-            row(t("ses.hw.kernel"), Some(hw.kernel.clone()), None),
-            row(t("ses.hw.vr"), Some(hw.vr_runtime.clone()), None),
+            row(t("ses-hw-os"), Some(hw.distro.clone()), None),
+            row(t("ses-hw-kernel"), Some(hw.kernel.clone()), None),
+            row(t("ses-hw-vr"), Some(hw.vr_runtime.clone()), None),
         ];
 
         let id = s.id.clone();
@@ -844,13 +844,13 @@ impl Component for SessionDetail {
                         open.set(None);
                     }
                 })
-                .child(label().text(t("ses.delete.confirm")).color(T.accent_text))
+                .child(label().text(t("ses-delete-confirm")).color(T.accent_text))
                 .into_element()
         } else {
             Button::new()
                 .flat()
                 .on_press(move |_| confirm.set(true))
-                .child(t("ses.delete"))
+                .child(t("ses-delete"))
                 .into_element()
         };
 
@@ -860,9 +860,9 @@ impl Component for SessionDetail {
             .child(head)
             .child(stats)
             .child(charts)
-            .child(group(t("ses.slow"), slow))
-            .child(group(t("ses.g.title"), played))
-            .child(group(t("ses.hw"), machine))
+            .child(group(t("ses-slow"), slow))
+            .child(group(t("ses-g-title"), played))
+            .child(group(t("ses-hw"), machine))
             .child(
                 rect()
                     .width(Size::fill())
@@ -873,7 +873,7 @@ impl Component for SessionDetail {
                     .child(
                         rect()
                             .width(Size::flex(1.))
-                            .child(muted(t("ses.delete.sub"))),
+                            .child(muted(t("ses-delete-sub"))),
                     )
                     .child(delete),
             )

@@ -16,12 +16,12 @@ use crate::widgets::{Tone, body, dot, muted};
 
 /// The stages of a build, in order, with the share of the bar each ends at.
 const STAGES: &[(&str, f32)] = &[
-    ("build.stage.image", 0.10),
-    ("build.stage.sources", 0.25),
-    ("build.stage.prep", 0.40),
-    ("build.stage.patch", 0.45),
-    ("build.stage.compile", 0.95),
-    ("build.stage.package", 1.00),
+    ("build-stage-image", 0.10),
+    ("build-stage-sources", 0.25),
+    ("build-stage-prep", 0.40),
+    ("build-stage-patch", 0.45),
+    ("build-stage-compile", 0.95),
+    ("build-stage-package", 1.00),
 ];
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -170,12 +170,12 @@ impl Component for BuildScreen {
                     .child(OrbitLoader)
                     .child(
                         label()
-                            .text(t("build.title"))
+                            .text(t("build-title"))
                             .font_size(size::TITLE)
                             .font_weight(FontWeight::SEMI_BOLD)
                             .color(T.text),
                     )
-                    .child(muted(t("build.sub")))
+                    .child(muted(t("build-sub")))
                     .child(
                         rect().width(Size::fill()).child(
                             ProgressBar::new((p.fraction * 100.).clamp(1., 100.))
@@ -214,7 +214,7 @@ impl Component for BuildScreen {
                         Button::new()
                             .flat()
                             .on_press(move |_| ui.build_hidden.set(true))
-                            .child(t("build.hide")),
+                            .child(t("build-hide")),
                     ),
             )
     }

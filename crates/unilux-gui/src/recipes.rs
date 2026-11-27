@@ -22,10 +22,10 @@ enum Tab {
 }
 
 const TABS: &[(Tab, &str)] = &[
-    (Tab::Setup, "recipes.tab.setup"),
-    (Tab::Recipes, "recipes.tab.mine"),
-    (Tab::Sessions, "recipes.tab.sessions"),
-    (Tab::Community, "recipes.tab.community"),
+    (Tab::Setup, "recipes-tab-setup"),
+    (Tab::Recipes, "recipes-tab-mine"),
+    (Tab::Sessions, "recipes-tab-sessions"),
+    (Tab::Community, "recipes-tab-community"),
 ];
 
 fn tab_button(
@@ -51,26 +51,26 @@ fn tab_button(
 /// Only a recipe the community vouches for gets a badge; "proposed" and
 /// "untested" are what every recipe is until then.
 fn standing_chip(v: &Verdict) -> Option<Rect> {
-    (v.status == Standing::Community).then(|| chip(t("recipes.standing.community"), Tone::Ok))
+    (v.status == Standing::Community).then(|| chip(t("recipes-standing-community"), Tone::Ok))
 }
 
 /// What the reports say, in words: "3 sessions, 4.2 h, no crash, videos played 100 %".
 fn verdict_line(v: &Verdict) -> String {
     let mut parts = vec![
         if v.reports == 1 {
-            t("recipes.stat.one").to_string()
+            t("recipes-stat-one").to_string()
         } else {
-            format!("{} {}", v.reports, t("recipes.stat.many"))
+            format!("{} {}", v.reports, t("recipes-stat-many"))
         },
         format!("{:.1} h", v.hours),
         match v.crashes_in_game {
-            0 => t("recipes.stat.nocrash").to_string(),
-            1 => t("recipes.stat.crash.one").to_string(),
-            n => format!("{n} {}", t("recipes.stat.crash.many")),
+            0 => t("recipes-stat-nocrash").to_string(),
+            1 => t("recipes-stat-crash-one").to_string(),
+            n => format!("{n} {}", t("recipes-stat-crash-many")),
         },
     ];
     if let Some(s) = v.video_success {
-        parts.push(format!("{} {:.0} %", t("recipes.stat.videos"), s * 100.0));
+        parts.push(format!("{} {:.0} %", t("recipes-stat-videos"), s * 100.0));
     }
     parts.join(", ")
 }
@@ -78,9 +78,9 @@ fn verdict_line(v: &Verdict) -> String {
 /// "4 fixes", or "1 fix".
 fn fix_count(n: usize) -> String {
     if n == 1 {
-        t("recipes.stat.fixes.one").to_string()
+        t("recipes-stat-fixes-one").to_string()
     } else {
-        format!("{n} {}", t("recipes.stat.fixes.many"))
+        format!("{n} {}", t("recipes-stat-fixes-many"))
     }
 }
 
@@ -90,7 +90,7 @@ fn open_url(url: &str) {
 
 fn copy(mut ui: Ui, text: String) {
     match freya::clipboard::Clipboard::set(text) {
-        Ok(()) => ui.notice(Severity::Info, t("recipes.copied")),
+        Ok(()) => ui.notice(Severity::Info, t("recipes-copied")),
         Err(e) => ui.error.set(Some(format!("{e:?}"))),
     }
 }
@@ -135,8 +135,8 @@ impl Component for RecipesSection {
             .child(
                 rect()
                     .spacing(space::XS)
-                    .child(title(t("prefs.recipes")))
-                    .maybe_child((!in_tunnel).then(|| muted(t("recipes.lead")))),
+                    .child(title(t("prefs-recipes")))
+                    .maybe_child((!in_tunnel).then(|| muted(t("recipes-lead")))),
             )
             .maybe_child((!in_tunnel).then(|| {
                 rect()
@@ -177,22 +177,22 @@ impl Component for HomeTab {
         };
         let can_build = svc().patch_builder().is_some();
         let bundle_chip = match &st.patches {
-            Some(p) if p.bundle.is_some() && p.intact => chip(t("stat.intact"), Tone::Ok),
-            Some(p) if p.bundle.is_some() => chip(t("stat.changed"), Tone::Error),
+            Some(p) if p.bundle.is_some() && p.intact => chip(t("stat-intact"), Tone::Ok),
+            Some(p) if p.bundle.is_some() => chip(t("stat-changed"), Tone::Error),
             _ if source == Some(PatchSource::NotNeeded) => {
-                chip(t("prefs.patch.not_needed"), Tone::Ok)
+                chip(t("prefs-patch-not_needed"), Tone::Ok)
             }
-            _ => chip(t("stat.none"), Tone::Warn),
+            _ => chip(t("stat-none"), Tone::Warn),
         };
         let source_text = match source {
             Some(PatchSource::Published(unilux_patches::TargetStatus::Verified)) => {
-                t("prefs.patch.verified")
+                t("prefs-patch-verified")
             }
-            Some(PatchSource::Published(_)) => t("prefs.patch.untested"),
-            Some(PatchSource::Built) => t("prefs.patch.built"),
-            Some(PatchSource::NotNeeded) => t("prefs.patch.not_needed"),
-            Some(PatchSource::MustBuild) if can_build => t("prefs.patch.on_use"),
-            Some(PatchSource::MustBuild) => t("prefs.patch.need_builder"),
+            Some(PatchSource::Published(_)) => t("prefs-patch-untested"),
+            Some(PatchSource::Built) => t("prefs-patch-built"),
+            Some(PatchSource::NotNeeded) => t("prefs-patch-not_needed"),
+            Some(PatchSource::MustBuild) if can_build => t("prefs-patch-on_use"),
+            Some(PatchSource::MustBuild) => t("prefs-patch-need_builder"),
             None => "",
         };
         let needs_build = plan.as_ref().is_some_and(|p| p.needs_build());
@@ -203,7 +203,7 @@ impl Component for HomeTab {
         let proton_tag = proton
             .as_ref()
             .map(|p| p.tag.clone())
-            .unwrap_or_else(|| t("stat.none").to_string());
+            .unwrap_or_else(|| t("stat-none").to_string());
         let build_now = needs_build && source == Some(PatchSource::MustBuild);
         rect()
             .width(Size::fill())
@@ -216,7 +216,7 @@ impl Component for HomeTab {
                     .corner_radius(RADIUS_PANEL)
                     .background(T.surface)
                     .border(Border::new().fill(T.border).width(1.))
-                    .child(muted(t("setup.current")))
+                    .child(muted(t("setup-current")))
                     .child(
                         rect()
                             .width(Size::fill())
@@ -252,9 +252,9 @@ impl Component for HomeTab {
                                     .child(
                                         label()
                                             .text(if proton.is_some() {
-                                                t("setup.change")
+                                                t("setup-change")
                                             } else {
-                                                t("setup.configure")
+                                                t("setup-configure")
                                             })
                                             .font_weight(FontWeight::SEMI_BOLD)
                                             .color(T.accent_text),
@@ -273,21 +273,21 @@ impl Component for HomeTab {
                                             |_| {},
                                         )
                                     })
-                                    .child(t("recipes.build.now"))
+                                    .child(t("recipes-build-now"))
                             })),
                     ),
             )
             .child(group(
-                t("setup.repair"),
+                t("setup-repair"),
                 vec![row(
-                    t("prefs.patches.restore"),
-                    Some(t("recipes.restore.sub").into()),
+                    t("prefs-patches-restore"),
+                    Some(t("recipes-restore-sub").into()),
                     Some(
                         Button::new()
                             .flat()
                             .enabled(!busy)
                             .on_press(move |_| ui.run(async { svc().patch_restore() }, |_| {}))
-                            .child(t("recipes.restore"))
+                            .child(t("recipes-restore"))
                             .into_element(),
                     ),
                 )],
@@ -355,21 +355,21 @@ impl Component for MineTab {
             if let Some(p) = &r.proton {
                 facts.push(format!(
                     "{} {}",
-                    t("recipes.stat.pinned"),
+                    t("recipes-stat-pinned"),
                     p.replace(':', " ")
                 ));
             }
             if let Some(v) = v.as_ref().filter(|v| v.reports > 0) {
-                facts.push(format!("{} {}", t("recipes.stat.tested"), verdict_line(v)));
+                facts.push(format!("{} {}", t("recipes-stat-tested"), verdict_line(v)));
             }
             let sub = format!("{first}\n{}", facts.join(" · "));
             let trailing = rect()
                 .horizontal()
                 .spacing(space::S)
                 .cross_align(Alignment::Center)
-                .maybe_child(r.custom_code.then(|| chip(t("recipes.custom"), Tone::Warn)))
+                .maybe_child(r.custom_code.then(|| chip(t("recipes-custom"), Tone::Warn)))
                 .maybe_child(v.as_ref().and_then(standing_chip))
-                .maybe_child(r.active.then(|| chip(t("recipes.active"), Tone::Accent)))
+                .maybe_child(r.active.then(|| chip(t("recipes-active"), Tone::Accent)))
                 .maybe_child((!r.active).then(|| {
                     Button::new()
                         .compact()
@@ -380,7 +380,7 @@ impl Component for MineTab {
                                 reload()
                             })
                         })
-                        .child(t("prefs.proton.use"))
+                        .child(t("prefs-proton-use"))
                 }))
                 .maybe_child(r.builtin.then(|| {
                     Button::new()
@@ -389,7 +389,7 @@ impl Component for MineTab {
                         .on_press(move |_| {
                             flow.set(Some(Flow::start(Some(&id_fork), Step::Fixes, Intent::Fork)))
                         })
-                        .child(t("recipes.fork"))
+                        .child(t("recipes-fork"))
                 }))
                 .maybe_child((!r.builtin).then(|| {
                     Button::new()
@@ -398,7 +398,7 @@ impl Component for MineTab {
                         .on_press(move |_| {
                             flow.set(Some(Flow::start(Some(&id_edit), Step::Fixes, Intent::Edit)))
                         })
-                        .child(t("recipes.edit"))
+                        .child(t("recipes-edit"))
                 }))
                 .maybe_child((!r.builtin).then(|| {
                     Button::new()
@@ -411,7 +411,7 @@ impl Component for MineTab {
                             }
                             Err(e) => ui.error.set(Some(e.to_string())),
                         })
-                        .child(t("recipes.share"))
+                        .child(t("recipes-share"))
                 }))
                 .maybe_child((!r.builtin && !r.active).then(|| {
                     Button::new()
@@ -423,7 +423,7 @@ impl Component for MineTab {
                             }
                             reload();
                         })
-                        .child(t("prefs.proton.remove"))
+                        .child(t("prefs-proton-remove"))
                 }))
                 .into_element();
             let name = if r.builtin {
@@ -440,8 +440,8 @@ impl Component for MineTab {
         }
         if yours.is_empty() {
             yours.push(row(
-                t("recipes.yours.none"),
-                Some(t("recipes.yours.none.sub").into()),
+                t("recipes-yours-none"),
+                Some(t("recipes-yours-none-sub").into()),
                 None,
             ));
         }
@@ -450,44 +450,44 @@ impl Component for MineTab {
             let (recipe_text, reports_text) = (s.recipe.clone(), s.reports.clone());
             let url = s.url.clone();
             group(
-                &format!("{} {id}", t("recipes.share")),
+                &format!("{} {id}", t("recipes-share")),
                 vec![
                     row(
                         if s.prefilled {
-                            t("recipes.share.prefilled")
+                            t("recipes-share-prefilled")
                         } else {
-                            t("recipes.share.paste")
+                            t("recipes-share-paste")
                         },
-                        Some(t("recipes.share.sub").into()),
+                        Some(t("recipes-share-sub").into()),
                         Some(
                             Button::new()
                                 .compact()
                                 .on_press(move |_| open_url(&url))
-                                .child(t("recipes.share.open"))
+                                .child(t("recipes-share-open"))
                                 .into_element(),
                         ),
                     ),
                     row(
-                        t("recipes.share.recipe"),
+                        t("recipes-share-recipe"),
                         None,
                         Some(
                             Button::new()
                                 .compact()
                                 .flat()
                                 .on_press(move |_| copy(ui, recipe_text.clone()))
-                                .child(t("recipes.copy.button"))
+                                .child(t("recipes-copy-button"))
                                 .into_element(),
                         ),
                     ),
                     row(
-                        t("recipes.share.reports"),
+                        t("recipes-share-reports"),
                         None,
                         Some(
                             Button::new()
                                 .compact()
                                 .flat()
                                 .on_press(move |_| copy(ui, reports_text.clone()))
-                                .child(t("recipes.copy.button"))
+                                .child(t("recipes-copy-button"))
                                 .into_element(),
                         ),
                     ),
@@ -498,8 +498,8 @@ impl Component for MineTab {
         rect()
             .spacing(space::XL)
             .maybe_child(share_panel)
-            .child(group(t("recipes.official"), official))
-            .child(group(t("recipes.yours"), yours))
+            .child(group(t("recipes-official"), official))
+            .child(group(t("recipes-yours"), yours))
             .child(
                 rect()
                     .horizontal()
@@ -509,7 +509,7 @@ impl Component for MineTab {
                             .on_press(move |_| {
                                 flow.set(Some(Flow::start(None, Step::Proton, Intent::New)));
                             })
-                            .child(t("recipes.new")),
+                            .child(t("recipes-new")),
                     )
                     .child(
                         Button::new()
@@ -520,19 +520,19 @@ impl Component for MineTab {
                                     Ok(r) => {
                                         ui.notice(
                                             Severity::Info,
-                                            format!("{} {}", t("recipes.imported"), r.id),
+                                            format!("{} {}", t("recipes-imported"), r.id),
                                         );
                                         reload();
                                     }
                                     Err(e) => {
-                                        ui.error.set(Some(format!("{}: {e}", t("recipes.import"))))
+                                        ui.error.set(Some(format!("{}: {e}", t("recipes-import"))))
                                     }
                                 }
                             })
-                            .child(t("recipes.import")),
+                            .child(t("recipes-import")),
                     ),
             )
-            .child(muted(t("recipes.import.sub")))
+            .child(muted(t("recipes-import-sub")))
     }
 }
 
@@ -560,21 +560,21 @@ impl Component for CommunityTab {
                 .child(CircularLoader::new().size(28.))
                 .into_element(),
             Some(Err(e)) => group(
-                t("recipes.tab.community"),
-                vec![row(t("recipes.community.offline"), Some(e), None)],
+                t("recipes-tab-community"),
+                vec![row(t("recipes-community-offline"), Some(e), None)],
             )
             .into_element(),
             Some(Ok(idx)) if idx.recipes.is_empty() => group(
-                t("recipes.tab.community"),
+                t("recipes-tab-community"),
                 vec![row(
-                    t("recipes.community.empty"),
-                    Some(t("recipes.community.empty.sub").into()),
+                    t("recipes-community-empty"),
+                    Some(t("recipes-community-empty-sub").into()),
                     None,
                 )],
             )
             .into_element(),
             Some(Ok(idx)) => group(
-                t("recipes.tab.community"),
+                t("recipes-tab-community"),
                 idx.recipes
                     .iter()
                     .map(|e| {
@@ -600,7 +600,7 @@ impl Component for CommunityTab {
                             .spacing(space::S)
                             .cross_align(Alignment::Center)
                             .maybe_child(
-                                e.custom_code.then(|| chip(t("recipes.custom"), Tone::Warn)),
+                                e.custom_code.then(|| chip(t("recipes-custom"), Tone::Warn)),
                             )
                             .maybe_child(standing_chip(&e.verdict))
                             .child(
@@ -613,12 +613,12 @@ impl Component for CommunityTab {
                                             move |r| {
                                                 ui.notice(
                                                     Severity::Info,
-                                                    format!("{} {}", t("recipes.imported"), r.id),
+                                                    format!("{} {}", t("recipes-imported"), r.id),
                                                 )
                                             },
                                         )
                                     })
-                                    .child(t("recipes.community.add")),
+                                    .child(t("recipes-community-add")),
                             )
                             .into_element();
                         row(e.title.clone(), Some(sub), Some(trailing))
@@ -629,7 +629,7 @@ impl Component for CommunityTab {
         };
         rect()
             .spacing(space::XL)
-            .child(muted(t("recipes.community.lead")))
+            .child(muted(t("recipes-community-lead")))
             .child(body_el)
             .child(muted(unilux_patches::community::RULES).font_size(size::SMALL))
     }

@@ -11,12 +11,12 @@ use crate::theme::{T, size, space};
 use crate::widgets::{Icon, Tone, dot, group, muted, row, title};
 
 const SECTIONS: &[(Section, &str)] = &[
-    (Section::General, "prefs.general"),
-    (Section::Recipes, "prefs.recipes"),
-    (Section::Vr, "prefs.vr"),
-    (Section::Diagnostics, "prefs.diagnostics"),
-    (Section::Logs, "prefs.logs"),
-    (Section::Agents, "prefs.agents"),
+    (Section::General, "prefs-general"),
+    (Section::Recipes, "prefs-recipes"),
+    (Section::Vr, "prefs-vr"),
+    (Section::Diagnostics, "prefs-diagnostics"),
+    (Section::Logs, "prefs-logs"),
+    (Section::Agents, "prefs-agents"),
 ];
 
 #[derive(PartialEq)]
@@ -152,7 +152,7 @@ fn view(mut ui: Ui) -> impl IntoElement {
                         .padding((0., space::M))
                         .flat()
                         .on_press(move |_| ui.screen.set(Screen::Launcher))
-                        .child(nav_row(Icon::Back, t("nav.back").to_string(), false, None)),
+                        .child(nav_row(Icon::Back, t("nav-back").to_string(), false, None)),
                 )
                 .child(
                     rect()
@@ -235,7 +235,7 @@ fn general(mut ui: Ui) -> impl IntoElement {
     let lang_row = rect()
         .horizontal()
         .spacing(space::S)
-        .child(lang_btn(t("prefs.lang.auto"), None))
+        .child(lang_btn(t("prefs-lang-auto"), None))
         .child(lang_btn("English", Some("en")))
         .child(lang_btn("Français", Some("fr")))
         .into_element();
@@ -243,7 +243,7 @@ fn general(mut ui: Ui) -> impl IntoElement {
     let update_line = match ui.update.read().as_ref() {
         Some(u) => match &u.available {
             Some(r) => format!("{current} → {}", r.version),
-            None => format!("{current} · {}", t("prefs.updates.uptodate")),
+            None => format!("{current} · {}", t("prefs-updates-uptodate")),
         },
         None => current,
     };
@@ -257,14 +257,14 @@ fn general(mut ui: Ui) -> impl IntoElement {
         Button::new()
             .filled()
             .on_press(|_| crate::restart())
-            .child(t("update.restart"))
+            .child(t("update-restart"))
             .into_element()
     } else if can_install {
         Button::new()
             .filled()
             .enabled(!busy)
             .on_press(move |_| ui.update_now())
-            .child(t("update.install"))
+            .child(t("update-install"))
             .into_element()
     } else {
         Button::new()
@@ -274,51 +274,51 @@ fn general(mut ui: Ui) -> impl IntoElement {
                     ui.update.set(Some(i))
                 })
             })
-            .child(t("prefs.updates.check"))
+            .child(t("prefs-updates-check"))
             .into_element()
     };
     rect()
         .spacing(space::XL)
-        .child(title(t("prefs.general")))
+        .child(title(t("prefs-general")))
         .child(group(
             crate::i18n::t("prefs-somnium-space-account"),
             vec![crate::events::AccountForm(ui).into_element()],
         ))
         .child(group(
-            t("prefs.updates"),
+            t("prefs-updates"),
             vec![
                 row(
-                    format!("Unilux {}", t("prefs.updates.version")),
+                    format!("Unilux {}", t("prefs-updates-version")),
                     Some(update_line),
                     Some(version_action),
                 ),
                 row(
-                    t("prefs.updates.auto"),
+                    t("prefs-updates-auto"),
                     None,
                     Some(Switch::new(auto_setter).into_element()),
                 ),
                 row(
-                    t("prefs.updates.beta"),
+                    t("prefs-updates-beta"),
                     None,
                     Some(Switch::new(beta_setter).into_element()),
                 ),
             ],
         ))
         .child(group(
-            t("prefs.general"),
+            t("prefs-general"),
             vec![
                 row(
-                    t("prefs.lang"),
-                    Some(t("prefs.lang.sub").into()),
+                    t("prefs-lang"),
+                    Some(t("prefs-lang-sub").into()),
                     Some(lang_row),
                 ),
                 row(
-                    t("prefs.prefix"),
+                    t("prefs-prefix"),
                     Some(st.prefix.display().to_string()),
                     None,
                 ),
                 row(
-                    t("play.flat"),
+                    t("play-flat"),
                     None,
                     Some(
                         Button::new()
@@ -335,13 +335,13 @@ fn general(mut ui: Ui) -> impl IntoElement {
                     ),
                 ),
                 row(
-                    t("prefs.repair"),
-                    Some(t("prefs.repair.sub").into()),
+                    t("prefs-repair"),
+                    Some(t("prefs-repair-sub").into()),
                     Some(
                         Button::new()
                             .enabled(st.installed && !busy)
                             .on_press(move |_| ui.run(async { svc().repair().await }, |_| {}))
-                            .child(t("play.repair"))
+                            .child(t("play-repair"))
                             .into_element(),
                     ),
                 ),
@@ -353,7 +353,7 @@ fn logs(ui: Ui) -> impl IntoElement {
     let lines = ui.logs.read().clone();
     rect()
         .spacing(space::M)
-        .child(title(t("prefs.logs")))
+        .child(title(t("prefs-logs")))
         .child(muted(svc().paths().launch_log().display().to_string()))
         .child(
             rect()
