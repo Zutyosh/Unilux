@@ -152,6 +152,12 @@ impl Launcher {
             ));
         }
         let (spec, env) = self.plan()?;
+        if let Err(e) = crate::registry::apply(&self.prefix()) {
+            self.notice(
+                Severity::Warn,
+                format!("Could not set the launcher's rendering in the prefix registry: {e}"),
+            );
+        }
         self.notice(
             Severity::Info,
             format!("Detected OpenXR runtime: {}", env.runtime_label),
