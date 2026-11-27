@@ -9,11 +9,28 @@ Status: early development, not yet tested end to end with a headset.
 1. Checks the system: distribution, Python, Vulkan, the OpenXR runtime and the OpenVR layer Proton needs.
 2. Downloads Proton (GE-Proton or Proton-CachyOS) from GitHub releases, picks the build for your CPU (x86-64-v3 when possible) and verifies the upstream SHA-256.
 3. Installs a Somnium patch bundle into that Proton: the Wine fixes for sign-in (TLS client certificates) and video playback, recorded so Unilux notices if anything overwrites them.
-4. Creates a Wine prefix and runs your own copy of Somnium's official installer inside it.
+4. Creates a Wine prefix, in your home or on the drive you choose, and runs your own copy of Somnium's official installer inside it.
 5. Waits for VR to be ready before launching, so WiVRn users do not land in desktop mode, then watches the processes and keeps the log.
 6. When something breaks, `unilux doctor` names the cause and offers a fix you approve.
 
-It never asks for root and writes only under your home directory.
+It never asks for root and writes only under your home directory and the folder you pick for the prefix.
+
+## Where Somnium lives
+
+The Wine prefix holds Somnium and its settings, and takes several GB. It goes to `~/.local/share/unilux/prefix` unless you choose another folder: in the setup wizard (Install location > Change) or later in Settings > General > Wine prefix > Move.
+
+```sh
+unilux prefix show               # where the prefix is now
+unilux prefix move /mnt/games    # move it to another folder or drive
+```
+
+A folder that is empty or does not exist yet receives the prefix itself; a folder that already holds files gets a new `unilux-prefix` folder inside it. On the same drive the move is instant. To another drive Unilux copies the prefix with its links, permissions and file times, checks the free space first, shows the progress, and removes the old copy only once the new one is in place. If anything fails, the prefix stays where it was. Moving stops whatever still runs in the prefix, so close Somnium first.
+
+## Languages
+
+The app speaks English, French and Scots. It follows your system language (`LC_ALL`, `LC_MESSAGES` or `LANG`); Settings > General > Language picks another. Text missing from a language shows in English.
+
+To add a language, copy `crates/unilux-gui/locales/lang.ftl.template` to `<code>.ftl` (for example `de.ftl` or `pt-BR.ftl`), fill in each `{""}`, and add the file to `LANGS` in `crates/unilux-gui/src/i18n.rs`. The files use [Fluent](https://projectfluent.org): values are named (`{ $count }`, `{ $path }`), and the comment above a message lists them. `cargo test -p unilux-gui i18n` checks that the new file has every key and only the variables the template declares. The command line and MCP server are in English only for now.
 
 ## VR runtimes
 
@@ -85,7 +102,7 @@ unilux uninstall --remove-prefix  # same, plus the prefix: Somnium and its setti
 rm -r ~/.config/unilux ~/.local/share/unilux ~/.local/state/unilux ~/.cache/unilux
 ```
 
-`~/.local/share/unilux` holds the prefix, so this removes Somnium and its settings too.
+`~/.local/share/unilux` holds the prefix unless you moved it, so this removes Somnium and its settings too. A prefix you moved elsewhere stays: `unilux prefix show` says where it is, and `unilux uninstall --remove-prefix` removes it wherever it lives.
 
 Unilux itself is not removed by `unilux uninstall`. How you remove it depends on how you installed it:
 
