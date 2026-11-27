@@ -7,8 +7,10 @@ mod build_screen;
 mod diagnostics;
 mod events;
 mod i18n;
+mod identity;
 mod launcher;
 mod loader;
+mod panorama;
 mod recipes;
 mod sessions;
 mod settings;
@@ -49,6 +51,7 @@ pub fn svc() -> &'static Service {
 }
 
 fn main() {
+    panorama::preload();
     let rt = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
@@ -80,10 +83,13 @@ fn main() {
     });
     let _ = SERVICE.set(service);
     i18n::set(i18n::detect());
+    identity::register(|k| std::env::var(k).ok());
     launch(
         LaunchConfig::new().with_window(
             WindowConfig::new(app::app)
                 .with_title("Unilux")
+                .with_app_id(identity::APP_ID)
+                .with_icon(LaunchConfig::window_icon(identity::ICON_256))
                 .with_size(1180., 720.)
                 .with_min_size(900., 600.)
                 .with_background((0x12, 0x14, 0x17)),
@@ -188,6 +194,7 @@ mod tests {
             r#"{"schema":2,"proton":"ge:GE-Proton11-5","installed_at":1}"#,
         )
         .unwrap();
+        panorama::load();
         let (mut launcher, _) = TestingRunner::new(app::app, size, |_| {}, 1.0);
         launcher.sync_and_update();
         launcher.poll(
@@ -296,12 +303,12 @@ mod tests {
         std::fs::write(paths.audit_log(), audit).unwrap();
 
         // Compatibility recipes: every tab, then the compile screen.
-        state::TEST_SECTION.with(|s| s.set(Some(state::Section::Recipes)));
+        state::TEST_SECTION.with(|s| s.set(Some(state::Section::Game)));
         for (i, name) in [
             "recipes",
             "mine",
-            "sessions",
             "community",
+            "game-home",
             "setup-proton",
             "setup-fixes",
             "setup-build",
@@ -310,7 +317,7 @@ mod tests {
         .iter()
         .enumerate()
         {
-            recipes::TEST_TAB.with(|t| t.set(i as u8 % 4));
+            recipes::TEST_TAB.with(|t| t.set(i as u8 % 3));
             setup::TEST_STEP.with(|s| s.set((4..7).contains(&i).then(|| (i - 4) as u8)));
             state::TEST_BUILD.with(|b| b.set(*name == "build"));
             if *name == "build" {
@@ -342,7 +349,7 @@ mod tests {
         }
         setup::TEST_STEP.with(|s| s.set(None));
         state::TEST_BUILD.with(|b| b.set(false));
-        recipes::TEST_TAB.with(|t| t.set(2));
+        state::TEST_SECTION.with(|s| s.set(Some(state::Section::Performance)));
         sessions::TEST_OPEN.with(|o| o.set(true));
         let (mut r, _) = TestingRunner::new(app::app, size, |_| {}, 1.0);
         r.sync_and_update();
@@ -358,9 +365,10 @@ mod tests {
 
         // VR and Diagnostics.
         for (section, name, wait) in [
-            (state::Section::General, "general", 800),
+            (state::Section::Preferences, "general", 800),
             (state::Section::Vr, "vr", 800),
-            (state::Section::Diagnostics, "diagnostics", 4000),
+            (state::Section::Performance, "sessions", 800),
+            (state::Section::Health, "diagnostics", 4000),
             (state::Section::Agents, "agents", 800),
         ] {
             state::TEST_SECTION.with(|s| s.set(Some(section)));

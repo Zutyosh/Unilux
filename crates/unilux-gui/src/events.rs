@@ -8,10 +8,10 @@ use unilux_service::{Account, LoginStep, TwoFactor, TwoFactorMethod, UpcomingEve
 use crate::i18n::{DateStyle, t, t_args, t_date, t_named};
 use crate::state::{Screen, Section, Ui};
 use crate::svc;
-use crate::theme::{RADIUS_CONTROL, RADIUS_PILL, T, alpha, glass, size, space};
-use crate::widgets::{Tone, body, dot, glass_panel, link, muted, pill, title};
+use crate::theme::{RADIUS_CONTROL, RADIUS_PANEL, RADIUS_PILL, T, alpha, size, space};
+use crate::widgets::{Tone, body, dot, link, muted, pill, title};
 
-const CARD_W: f32 = 420.;
+const CARD_W: f32 = 380.;
 
 /// Top bar: how many people are in Somnium right now.
 pub fn online_badge(ui: Ui) -> Option<Element> {
@@ -21,9 +21,6 @@ pub fn online_badge(ui: Ui) -> Option<Element> {
             .horizontal()
             .cross_align(Alignment::Center)
             .spacing(space::S)
-            .padding((6., 14.))
-            .corner_radius(RADIUS_PILL)
-            .background(glass())
             .child(dot(if o.current > 0 {
                 Tone::Ok
             } else {
@@ -34,7 +31,7 @@ pub fn online_badge(ui: Ui) -> Option<Element> {
                     .text(t_args("events-online", &[("count", o.current.to_string())]))
                     .font_size(size::SMALL)
                     .font_weight(FontWeight::MEDIUM)
-                    .color(T.text),
+                    .color(T.muted),
             )
             .into_element(),
     )
@@ -44,7 +41,7 @@ pub fn online_badge(ui: Ui) -> Option<Element> {
 /// Signed out, a short invitation to sign in instead.
 pub fn events_panel(mut ui: Ui) -> Element {
     if ui.account.read().is_none() {
-        return glass_panel()
+        return panel()
             .width(Size::px(CARD_W))
             .spacing(space::S)
             .padding(space::XL)
@@ -55,7 +52,7 @@ pub fn events_panel(mut ui: Ui) -> Element {
                     Button::new()
                         .corner_radius(RADIUS_PILL)
                         .on_press(move |_| {
-                            ui.section.set(Section::General);
+                            ui.section.set(Section::Preferences);
                             ui.screen.set(Screen::Settings)
                         })
                         .child(t("events-sign")),
@@ -65,13 +62,13 @@ pub fn events_panel(mut ui: Ui) -> Element {
     }
     let events = ui.events.read().clone();
     let Some(((next, img), rest)) = events.split_first() else {
-        return glass_panel()
+        return panel()
             .width(Size::px(CARD_W))
             .padding(space::XL)
             .child(muted(t("events-no-event-planned-now")))
             .into_element();
     };
-    glass_panel()
+    panel()
         .width(Size::px(CARD_W))
         .padding(0.)
         .overflow(Overflow::Clip)
@@ -222,6 +219,18 @@ fn meta(ev: &UpcomingEvent) -> Option<String> {
         parts.push(t_args("events-going", &[("count", n.to_string())]));
     }
     (!parts.is_empty()).then(|| parts.join(", "))
+}
+
+/// The events card: the same see-through white as the round buttons beside
+/// Play, a blur of the panorama behind it and a hairline edge to set it apart.
+fn panel() -> Rect {
+    rect()
+        .background(alpha(T.text, 0.1))
+        .backdrop_blur(24.)
+        .corner_radius(RADIUS_PANEL)
+        .border(Border::new().fill(alpha(T.text, 0.18)).width(1.))
+        .shadow(Shadow::new().y(8.).blur(32.).color(alpha(T.bg, 0.45)))
+        .padding(space::L)
 }
 
 #[cfg(test)]

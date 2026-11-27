@@ -11,10 +11,14 @@ pub struct Tokens {
     pub border: Rgb,
     pub text: Rgb,
     pub muted: Rgb,
+    /// Tertiary text: timestamps, evidence, passed checks.
+    pub faint: Rgb,
+    /// No hue: the accent is the text colour, so state colours are the only
+    /// colour in the interface besides the key art.
     pub accent: Rgb,
     pub accent_hover: Rgb,
     pub accent_text: Rgb,
-    /// Second loader colour, the pink of Somnium's key art.
+    /// Second loader colour.
     pub glow: Rgb,
     pub ok: Rgb,
     pub warn: Rgb,
@@ -22,25 +26,21 @@ pub struct Tokens {
 }
 
 pub const T: &Tokens = &Tokens {
-    bg: (0x11, 0x11, 0x13),
-    surface: (0x19, 0x19, 0x1c),
-    raised: (0x24, 0x24, 0x28),
-    border: (0x30, 0x30, 0x35),
-    text: (0xec, 0xec, 0xef),
-    muted: (0x9b, 0x9b, 0xa4),
-    accent: (0xb6, 0x9a, 0xff),
-    accent_hover: (0xc9, 0xb6, 0xff),
-    accent_text: (0x16, 0x10, 0x2a),
-    glow: (0xff, 0x8f, 0xd6),
-    ok: (0x7c, 0xd3, 0x9a),
-    warn: (0xf0, 0xc6, 0x5a),
-    error: (0xf2, 0x7f, 0x7f),
+    bg: (0x0d, 0x0e, 0x10),
+    surface: (0x14, 0x15, 0x18),
+    raised: (0x1d, 0x1e, 0x22),
+    border: (0x2a, 0x2b, 0x30),
+    text: (0xe8, 0xe6, 0xe3),
+    muted: (0x8b, 0x8b, 0x92),
+    faint: (0x5d, 0x5d, 0x64),
+    accent: (0xe8, 0xe6, 0xe3),
+    accent_hover: (0xff, 0xff, 0xff),
+    accent_text: (0x0d, 0x0e, 0x10),
+    glow: (0x8b, 0x8b, 0x92),
+    ok: (0x86, 0xc7, 0x9a),
+    warn: (0xe8, 0xb2, 0x5a),
+    error: (0xef, 0x7f, 0x74),
 };
-
-/// Frosted panels over the key art.
-pub fn glass() -> Color {
-    alpha(T.bg, 0.62)
-}
 
 /// A token at some opacity.
 pub fn alpha(rgb: Rgb, a: f32) -> Color {
@@ -94,8 +94,7 @@ pub fn unilux_theme() -> Theme {
     k.text_secondary = c(T.muted);
     k.text_inverse = c(T.accent_text);
     k.focus = c(T.accent);
-    // Primary actions are off-white on graphite: the violet stays for the
-    // key art, the selection, toggles and progress, so it never competes.
+    // Primary actions are off-white on graphite, the only filled control.
     t.set(
         "filled_button",
         ButtonColorsThemePreference {
@@ -111,8 +110,8 @@ pub fn unilux_theme() -> Theme {
         SwitchColorsThemePreference {
             background: Preference::Specific(c(T.border)),
             thumb_background: Preference::Specific(c(T.muted)),
-            toggled_background: Preference::Specific(c(T.accent)),
-            toggled_thumb_background: Preference::Specific(c(T.accent_text)),
+            toggled_background: Preference::Specific(c(T.text)),
+            toggled_thumb_background: Preference::Specific(c(T.bg)),
             focus_border_fill: Preference::Specific(c(T.accent)),
         },
     );
@@ -121,8 +120,8 @@ pub fn unilux_theme() -> Theme {
         ProgressBarThemePreference {
             color: Preference::Specific(c(T.text)),
             background: Preference::Specific(alpha(T.text, 0.12)),
-            progress_background: Preference::Specific(c(T.accent)),
-            height: Preference::Specific(6.),
+            progress_background: Preference::Specific(c(T.text)),
+            height: Preference::Specific(4.),
         },
     );
     for (key, pad) in [

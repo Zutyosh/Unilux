@@ -152,7 +152,7 @@ fn step(n: usize, head: &str, text: &str, code: Option<&str>) -> Element {
         .width(Size::fill())
         .horizontal()
         .content(Content::Flex)
-        .padding((space::M, space::L))
+        .padding((space::M, 0.))
         .spacing(space::M)
         .child(
             rect()
