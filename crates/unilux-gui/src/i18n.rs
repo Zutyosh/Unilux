@@ -19,6 +19,7 @@ use unic_langid::LanguageIdentifier;
 const LANGS: &[(&str, &str)] = &[
     ("en", include_str!("../locales/en.ftl")),
     ("fr", include_str!("../locales/fr.ftl")),
+    ("sco", include_str!("../locales/sco.ftl")),
 ];
 
 const FALLBACK: &str = "en";
@@ -238,6 +239,7 @@ mod tests {
         assert_eq!(best_match("fr_FR.UTF-8"), "fr");
         assert_eq!(best_match("fr_CA@euro"), "fr");
         assert_eq!(best_match("en_GB.UTF-8"), "en");
+        assert_eq!(best_match("sco_GB.UTF-8"), "sco");
         assert_eq!(best_match("xx_YY.UTF-8"), FALLBACK);
         assert_eq!(best_match(""), FALLBACK);
     }
