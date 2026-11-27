@@ -5,7 +5,7 @@ use chrono::{Local, TimeZone};
 use freya::prelude::*;
 use unilux_service::{Account, LoginStep, TwoFactor, TwoFactorMethod, UpcomingEvent};
 
-use crate::i18n::{DateStyle, t, t_date, t_with};
+use crate::i18n::{DateStyle, t, t_date, t_named, t_with};
 use crate::state::{Screen, Section, Ui};
 use crate::svc;
 use crate::theme::{RADIUS_CONTROL, RADIUS_PILL, T, alpha, glass, size, space};
@@ -189,12 +189,18 @@ fn when(ev: &UpcomingEvent) -> String {
     let Some(start) = at(ev.start) else {
         return String::new();
     };
-    let mut s = t_date(start, DateStyle::Event);
-    if let Some(end) = ev.end.and_then(at) {
-        s.push_str(t("events-text-2"));
-        s.push_str(&t_date(end, DateStyle::Time));
+    let start = t_date(start, DateStyle::Event);
+    match ev.end.and_then(at) {
+        Some(end) => t_named(
+            "events-range",
+            &[
+                ("start", start.clone()),
+                ("end", t_date(end, DateStyle::Time)),
+            ],
+        )
+        .unwrap_or(start),
+        None => start,
     }
-    s
 }
 
 /// Where, who hosts, how many are going: whichever the event says.

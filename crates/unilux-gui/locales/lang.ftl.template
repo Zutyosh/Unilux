@@ -233,6 +233,8 @@ events-now = {""}
 events-online = {""}
 events-optional-unlocks-events-main = {""}
 events-password = {""}
+# Variables: $start, $end
+events-range = {""}
 events-send-again = {""}
 events-send-sms = {""}
 events-sign = {""}
@@ -243,7 +245,6 @@ events-signing = {""}
 events-somnium-events = {""}
 # Variables: $p1
 events-text = {""}
-events-text-2 = {""}
 events-verification-code = {""}
 # Variables: $profile, $file
 finding-amd-power-profile-advice = {""}

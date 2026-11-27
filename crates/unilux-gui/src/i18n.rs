@@ -251,7 +251,8 @@ mod tests {
 
     /// Literal keys passed to t, t_with, t_named and lookup in the GUI sources,
     /// except this file, whose tests would match themselves.
-    fn keys_used_in_code() -> Vec<(String, String)> {
+    /// (file, call, key) for every literal key passed to a lookup.
+    fn keys_used_in_code() -> Vec<(String, &'static str, String)> {
         let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
         let mut out = Vec::new();
         for file in std::fs::read_dir(dir).expect("src is readable") {
@@ -271,7 +272,7 @@ mod tests {
                     if let Some(lit) = rest.strip_prefix('"')
                         && let Some(end) = lit.find('"')
                     {
-                        out.push((name.clone(), lit[..end].to_string()));
+                        out.push((name.clone(), call, lit[..end].to_string()));
                     }
                 }
             }
@@ -284,7 +285,10 @@ mod tests {
         let template = keys("lang.ftl.template", &parse_template());
         let used = keys_used_in_code();
         assert!(used.len() > 300, "found only {} keys", used.len());
-        let missing: Vec<_> = used.iter().filter(|(_, k)| !template.contains(k)).collect();
+        let missing: Vec<_> = used
+            .iter()
+            .filter(|(_, _, k)| !template.contains(k))
+            .collect();
         assert!(
             missing.is_empty(),
             "keys missing from the template: {missing:?}"
@@ -317,5 +321,27 @@ mod tests {
                 "{code}.ftl has keys the template lacks: {extra:?}"
             );
         }
+    }
+
+    /// `t` and `lookup` only hand out text Fluent can lend as is: a
+    /// message with a placeable, even a quoted literal like {" "}, would
+    /// show as "?". Such text has to go through `t_with` or `t_named`.
+    #[test]
+    fn plain_lookups_never_show_a_question_mark() {
+        let mut broken = Vec::new();
+        for (file, call, key) in keys_used_in_code() {
+            if call != "t(" && call != "lookup(" {
+                continue;
+            }
+            for (code, _) in LANGS {
+                if let Some(Cow::Owned(text)) = format_in(code, &key, None) {
+                    broken.push(format!("{file}: {key} in {code}.ftl ({text:?})"));
+                }
+            }
+        }
+        assert!(
+            broken.is_empty(),
+            "these would show \"?\"; use t_with or t_named: {broken:#?}"
+        );
     }
 }
