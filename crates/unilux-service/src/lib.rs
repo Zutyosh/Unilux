@@ -400,15 +400,22 @@ impl Service {
         .await
     }
 
+    /// Point the config and the install record at `to`. All or nothing:
+    /// when the record cannot be saved the config goes back as it was, so
+    /// a move that is undone leaves both on the old prefix.
     fn record_prefix(&self, to: &Path) -> Result<()> {
-        let mut cfg = self.config();
+        let old = self.config();
+        let mut cfg = old.clone();
         cfg.prefix = (to != self.inner.paths.default_prefix()).then(|| to.to_path_buf());
         self.set_config(cfg)?;
         let file = self.inner.paths.state_file();
         let mut state = InstallState::load(&file).unwrap_or_default();
         if state.prefix.is_some() {
             state.prefix = Some(to.to_path_buf());
-            state.save(&file)?;
+            if let Err(e) = state.save(&file) {
+                let _ = self.set_config(old);
+                return Err(e);
+            }
         }
         Ok(())
     }
@@ -534,6 +541,37 @@ mod tests {
             .log_file(false)
             .build()
             .unwrap()
+    }
+
+    #[tokio::test]
+    async fn a_failed_record_leaves_the_prefix_and_config_alone() {
+        let d = tempfile::tempdir().unwrap();
+        let s = svc(d.path());
+        let old = d.path().join("old");
+        std::fs::create_dir_all(old.join("drive_c")).unwrap();
+        std::fs::write(old.join("system.reg"), "reg").unwrap();
+        let mut cfg = s.config();
+        cfg.prefix = Some(old.clone());
+        s.set_config(cfg).unwrap();
+        let file = s.paths().state_file();
+        InstallState {
+            prefix: Some(old.clone()),
+            installed_at: Some(1),
+            ..Default::default()
+        }
+        .save(&file)
+        .unwrap();
+        // A folder where the record's temporary file goes makes its save fail.
+        std::fs::create_dir_all(file.with_extension("tmp").join("x")).unwrap();
+
+        let to = d.path().join("new");
+        assert!(s.move_prefix(to.clone()).await.is_err());
+        assert!(old.join("system.reg").exists());
+        assert!(!to.exists());
+        assert_eq!(s.config().prefix, Some(old.clone()));
+        let on_disk = unilux_core::Config::load(&s.paths().config_file()).unwrap();
+        assert_eq!(on_disk.prefix, Some(old.clone()));
+        assert_eq!(InstallState::load(&file).unwrap().prefix, Some(old));
     }
 
     #[tokio::test]
