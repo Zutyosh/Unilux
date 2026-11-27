@@ -778,6 +778,51 @@ mod tests {
     use std::path::Path;
     use unilux_system::{FakeHost, PythonVersion};
 
+    /// The literal ids passed to `Finding::new` in this file, so a new
+    /// finding cannot be added without listing it in FINDING_IDS.
+    fn ids_in_source() -> Vec<String> {
+        let src = include_str!("checks.rs");
+        let code = &src[..src.find("#[cfg(test)]").unwrap_or(src.len())];
+        let literal = |s: &str| {
+            let s = s.trim_start().strip_prefix('"')?;
+            let end = s.find('"')?;
+            Some((s[..end].to_string(), s[end + 1..].to_string()))
+        };
+        code.match_indices("Finding::new(")
+            .filter_map(|(at, call)| {
+                let (_check, rest) = literal(&code[at + call.len()..])?;
+                let rest = rest.trim_start().strip_prefix(',')?;
+                literal(rest).map(|(id, _)| id)
+            })
+            .collect()
+    }
+
+    /// Calls that take their id from a table or a condition are not seen
+    /// by `ids_in_source`; their ids still have to appear as literals.
+    #[test]
+    fn finding_ids_lists_every_finding() {
+        let used = ids_in_source();
+        assert!(used.len() > 25, "found only {} literal ids", used.len());
+        let listed: HashSet<_> = FINDING_IDS.iter().copied().collect();
+        let missing: Vec<_> = used
+            .iter()
+            .filter(|id| !listed.contains(id.as_str()))
+            .collect();
+        assert!(missing.is_empty(), "add these to FINDING_IDS: {missing:?}");
+
+        let src = include_str!("checks.rs");
+        let list_end = src.find("pub struct Finding").unwrap();
+        let code = &src[list_end..src.find("#[cfg(test)]").unwrap()];
+        let stale: Vec<_> = FINDING_IDS
+            .iter()
+            .filter(|id| !code.contains(&format!("\"{id}\"")))
+            .collect();
+        assert!(
+            stale.is_empty(),
+            "FINDING_IDS lists ids no check uses: {stale:?}"
+        );
+    }
+
     fn ctx(files: &[&str], f: impl FnOnce(&mut DiagContext)) -> DiagContext {
         let paths = Paths::resolve(|k| (k == "HOME").then(|| "/h".to_string())).unwrap();
         let mut system = unilux_system::probe(&FakeHost::new());
