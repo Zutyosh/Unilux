@@ -372,6 +372,7 @@ impl Service {
         }
         self.exclusive(relocate::TASK, async {
             let from = self.prefix();
+            let chosen: PathBuf = chosen.components().collect();
             let to = relocate::target_for(&chosen);
             relocate::check_target(&from, &to)?;
             let svc = self.clone();
@@ -541,7 +542,8 @@ mod tests {
         let s = svc(d.path());
         let default = s.paths().default_prefix();
         let games = d.path().join("games");
-        assert_eq!(s.move_prefix(games.clone()).await.unwrap(), games);
+        let slash = PathBuf::from(format!("{}/", games.display()));
+        assert_eq!(s.move_prefix(slash).await.unwrap(), games);
         assert_eq!(s.config().prefix, Some(games.clone()));
         assert!(!games.exists(), "nothing to move before the install");
 
