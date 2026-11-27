@@ -6,7 +6,7 @@ use unilux_components::ProtonId;
 use unilux_patches::recipe::{DEFAULT_RECIPE, Ingredient, Kind};
 use unilux_service::{PatchSource, Recipe};
 
-use crate::i18n::{fix_summary, fix_title, step, t};
+use crate::i18n::{lookup, t};
 use crate::loader::OrbitLoader;
 use crate::state::Ui;
 use crate::svc;
@@ -87,7 +87,9 @@ impl Flow {
                 .recipe(&self.base)
                 .map(|r| {
                     let name = if r.id == DEFAULT_RECIPE {
-                        crate::i18n::recipe_title(&r.id, &r.title)
+                        lookup(&format!("recipe-{}-title", r.id))
+                            .map(str::to_string)
+                            .unwrap_or_else(|| r.title.clone())
                     } else {
                         r.title
                     };
@@ -648,7 +650,9 @@ impl Component for FixesStep {
                     .child(
                         label()
                             .text(if r.builtin {
-                                crate::i18n::recipe_title(&r.id, &r.title)
+                                lookup(&format!("recipe-{}-title", r.id))
+                                    .map(str::to_string)
+                                    .unwrap_or_else(|| r.title.clone())
                             } else {
                                 r.title.clone()
                             })
@@ -677,14 +681,15 @@ impl Component for FixesStep {
                     .as_ref()
                     .is_some_and(|b| b.custom.iter().any(|c| c.id == ing.id));
                 let key = ing.id.clone();
-                let sub = fix_summary(
-                    &ing.id,
-                    &if ing.summary.is_empty() {
-                        ing.id.clone()
-                    } else {
-                        ing.summary.clone()
-                    },
-                );
+                let sub = lookup(&format!("fix-{}-sum", ing.id))
+                    .map(str::to_string)
+                    .unwrap_or_else(|| {
+                        if ing.summary.is_empty() {
+                            ing.id.clone()
+                        } else {
+                            ing.summary.clone()
+                        }
+                    });
                 Button::new()
                     .key(ing.id.clone())
                     .flat()
@@ -710,7 +715,11 @@ impl Component for FixesStep {
                                 rect()
                                     .width(Size::flex(1.))
                                     .spacing(2.)
-                                    .child(body(fix_title(&ing.id, &ing.title)))
+                                    .child(body(
+                                        lookup(&format!("fix-{}-title", ing.id))
+                                            .map(str::to_string)
+                                            .unwrap_or_else(|| ing.title.clone()),
+                                    ))
                                     .child(muted(sub)),
                             )
                             .maybe_child(is_custom.then(|| chip(t("recipes-custom"), Tone::Warn)))
@@ -903,7 +912,11 @@ impl Component for BuildStep {
                                 l.ingredients
                                     .iter()
                                     .find(|i| i.id == *id)
-                                    .map(|i| fix_title(&i.id, &i.title))
+                                    .map(|i| {
+                                        lookup(&format!("fix-{}-title", i.id))
+                                            .map(str::to_string)
+                                            .unwrap_or_else(|| i.title.clone())
+                                    })
                                     .unwrap_or_else(|| id.clone())
                             })
                             .collect::<Vec<_>>()
@@ -977,7 +990,11 @@ impl Component for BuildStep {
                     .step
                     .read()
                     .as_ref()
-                    .map(|s| step(s))
+                    .map(|s| {
+                        lookup(&format!("step-{s}"))
+                            .map(str::to_string)
+                            .unwrap_or_else(|| s.replace('_', " "))
+                    })
                     .unwrap_or_else(|| t("setup-running-sub").to_string());
                 let bar = ui
                     .progress

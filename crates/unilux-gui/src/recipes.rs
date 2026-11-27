@@ -331,7 +331,9 @@ impl Component for MineTab {
                         .and_then(|l| l.ingredients.iter().find(|i| i.id == *id))
                         .map(|i| i.title.clone())
                         .unwrap_or_else(|| id.clone());
-                    crate::i18n::fix_title(id, &en)
+                    crate::i18n::lookup(&format!("fix-{id}-title"))
+                        .map(str::to_string)
+                        .unwrap_or(en)
                 })
                 .collect::<Vec<_>>()
                 .join(", ")
@@ -347,7 +349,9 @@ impl Component for MineTab {
             let first = if r.description.is_empty() {
                 fix_titles(&r.ingredients)
             } else if r.builtin {
-                crate::i18n::recipe_desc(&r.id, &r.description)
+                crate::i18n::lookup(&format!("recipe-{}-desc", r.id))
+                    .map(str::to_string)
+                    .unwrap_or_else(|| r.description.clone())
             } else {
                 r.description.clone()
             };
@@ -427,7 +431,9 @@ impl Component for MineTab {
                 }))
                 .into_element();
             let name = if r.builtin {
-                crate::i18n::recipe_title(&r.id, &r.title)
+                crate::i18n::lookup(&format!("recipe-{}-title", r.id))
+                    .map(str::to_string)
+                    .unwrap_or_else(|| r.title.clone())
             } else {
                 r.title.clone()
             };
@@ -582,7 +588,11 @@ impl Component for CommunityTab {
                         let fixes = e
                             .ingredients
                             .iter()
-                            .map(|i| crate::i18n::fix_title(i, i))
+                            .map(|i| {
+                                crate::i18n::lookup(&format!("fix-{i}-title"))
+                                    .map(str::to_string)
+                                    .unwrap_or_else(|| i.clone())
+                            })
                             .collect::<Vec<_>>()
                             .join(", ");
                         let first = if e.description.is_empty() {

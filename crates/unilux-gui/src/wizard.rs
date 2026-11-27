@@ -7,7 +7,7 @@ use freya::prelude::*;
 use unilux_core::Severity;
 use unilux_service::InstallOptions;
 
-use crate::i18n::{step, t};
+use crate::i18n::{lookup, t};
 use crate::state::{Screen, Ui};
 use crate::theme::{RADIUS_PILL, T, alpha, space};
 use crate::widgets::{
@@ -568,7 +568,11 @@ fn installing(mut w: Wiz, phrase: usize) -> impl IntoElement {
         .unwrap_or(finished.max(1));
     let heading = current
         .as_deref()
-        .map(step)
+        .map(|s| {
+            lookup(&format!("step-{s}"))
+                .map(str::to_string)
+                .unwrap_or_else(|| s.replace('_', " "))
+        })
         .unwrap_or_else(|| t("wiz-installing-title").to_string());
     if let Some(e) = error {
         return rect()

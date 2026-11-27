@@ -196,42 +196,6 @@ pub fn t_date(at: DateTime<Local>, style: DateStyle) -> String {
         .into_owned()
 }
 
-/// A fix's name in the user's language; unknown (custom) fixes keep theirs.
-pub fn fix_title(id: &str, fallback: &str) -> String {
-    lookup(&format!("fix-{id}-title"))
-        .unwrap_or(fallback)
-        .to_string()
-}
-
-/// What a fix does, in plain words.
-pub fn fix_summary(id: &str, fallback: &str) -> String {
-    lookup(&format!("fix-{id}-sum"))
-        .unwrap_or(fallback)
-        .to_string()
-}
-
-/// A shipped recipe's name and description, translated.
-pub fn recipe_title(id: &str, fallback: &str) -> String {
-    lookup(&format!("recipe-{id}-title"))
-        .unwrap_or(fallback)
-        .to_string()
-}
-
-pub fn recipe_desc(id: &str, fallback: &str) -> String {
-    lookup(&format!("recipe-{id}-desc"))
-        .unwrap_or(fallback)
-        .to_string()
-}
-
-/// Step label for an install step id, falling back to the id.
-pub fn step(id: &str) -> String {
-    if let Some(s) = lookup(&format!("step-{id}")) {
-        s.to_string()
-    } else {
-        id.replace('_', " ")
-    }
-}
-
 #[cfg(test)]
 mod tests {
 

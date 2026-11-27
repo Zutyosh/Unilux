@@ -6,7 +6,7 @@ use unilux_patches::community::{Crash, DipCause, HITCH_MS};
 use unilux_patches::timeline::Timeline;
 use unilux_service::SavedReport;
 
-use crate::i18n::{DateStyle, recipe_title, t, t_date, t_with};
+use crate::i18n::{DateStyle, lookup, t, t_date, t_with};
 use crate::state::Ui;
 use crate::svc;
 use crate::theme::{RADIUS_CONTROL, Rgb, T, alpha, size, space};
@@ -64,7 +64,10 @@ fn proton_tag(id: &str) -> &str {
 }
 
 fn recipe_name(r: &SavedReport) -> String {
-    recipe_title(&r.report.recipe.id, &r.report.recipe.id)
+    let id = &r.report.recipe.id;
+    lookup(&format!("recipe-{id}-title"))
+        .map(str::to_string)
+        .unwrap_or_else(|| id.clone())
 }
 
 fn hex(c: Rgb) -> String {
