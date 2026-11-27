@@ -11,7 +11,7 @@ use crate::i18n::{step, t};
 use crate::state::{Screen, Ui};
 use crate::theme::{RADIUS_PILL, T, alpha, space};
 use crate::widgets::{
-    Tone, body, chip, display, dot, link, muted, percent, pill, proton_label, title,
+    Tone, body, chip, display, dot, link, muted, percent, pick_folder, pill, proton_label, title,
 };
 use crate::{app, svc};
 
@@ -503,12 +503,45 @@ fn source(mut w: Wiz, hover: bool) -> impl IntoElement {
                         .child(t("wiz.source.browse")),
                 ),
         )
+        .child(location(w.ui))
         .maybe_child(error.map(|e| centered(body(e).color(T.error))))
         .child(actions(vec![
             link(t("wiz.back"))
                 .on_press(move |_| w.page.set(Page::Account))
                 .into_element(),
         ]))
+}
+
+/// Where the Wine prefix goes, changeable before anything is installed.
+fn location(ui: Ui) -> impl IntoElement {
+    let prefix = ui.status.read().prefix.display().to_string();
+    let busy = ui.status.read().operation.is_some();
+    rect()
+        .width(Size::fill())
+        .horizontal()
+        .content(Content::Flex)
+        .cross_align(Alignment::Center)
+        .spacing(space::M)
+        .child(
+            rect()
+                .width(Size::flex(1.))
+                .spacing(2.)
+                .child(body(t("wiz.source.location")))
+                .child(muted(prefix).color(alpha(T.text, 0.7))),
+        )
+        .child(
+            Button::new()
+                .corner_radius(RADIUS_PILL)
+                .enabled(!busy)
+                .on_press(move |_| {
+                    spawn_in_window(async move {
+                        if let Some(dir) = pick_folder(t("prefs.prefix.pick")).await {
+                            ui.run(async move { svc().move_prefix(dir).await }, |_| {});
+                        }
+                    });
+                })
+                .child(t("wiz.source.change")),
+        )
 }
 
 /// Optional: sign in to Somnium Space for the events on the main screen.

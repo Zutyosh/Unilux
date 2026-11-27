@@ -190,7 +190,7 @@ fn progress_line(ui: Ui) -> Option<Element> {
             .spacing(space::XS)
             .child(muted(
                 step.map(|s| crate::i18n::step(&s))
-                    .or(progress.map(|p| p.0))
+                    .or(progress.map(|p| crate::i18n::step(&p.0)))
                     .unwrap_or_default(),
             ))
             .child(

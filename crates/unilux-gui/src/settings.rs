@@ -8,7 +8,7 @@ use crate::state::{Screen, Section, Ui};
 
 use crate::svc;
 use crate::theme::{T, size, space};
-use crate::widgets::{Icon, Tone, dot, group, muted, row, title};
+use crate::widgets::{Icon, Tone, dot, group, muted, percent, pick_folder, row, title};
 
 const SECTIONS: &[(Section, &str)] = &[
     (Section::General, "prefs.general"),
@@ -189,6 +189,46 @@ fn section_icon(s: Section) -> Icon {
     }
 }
 
+/// Pick a folder, then move the prefix there with its progress inline.
+fn move_prefix_button(ui: Ui, st: &unilux_service::Status) -> Element {
+    let moving = st.operation.as_deref() == Some("move_prefix");
+    let pct = ui
+        .progress
+        .read()
+        .as_ref()
+        .filter(|(task, _, _)| task == "move_prefix")
+        .and_then(|(_, d, tot)| percent(*d, *tot));
+    let button = Button::new()
+        .enabled(st.operation.is_none() && st.session_pid.is_none())
+        .on_press(move |_| {
+            spawn_in_window(async move {
+                if let Some(dir) = pick_folder(t("prefs.prefix.pick")).await {
+                    ui.run(async move { svc().move_prefix(dir).await }, move |p| {
+                        ui.notice(
+                            unilux_core::Severity::Info,
+                            format!("{} {}", t("prefs.prefix.moved"), p.display()),
+                        )
+                    });
+                }
+            });
+        })
+        .child(t(if moving {
+            "prefs.prefix.moving"
+        } else {
+            "prefs.prefix.move"
+        }));
+    rect()
+        .width(Size::px(160.))
+        .cross_align(Alignment::End)
+        .spacing(space::XS)
+        .child(button)
+        .maybe_child(
+            pct.filter(|_| moving)
+                .map(|p| ProgressBar::new(p).show_progress(false).width(Size::fill())),
+        )
+        .into_element()
+}
+
 fn general(mut ui: Ui) -> impl IntoElement {
     let st = ui.status.read().clone();
     let busy = st.operation.is_some();
@@ -315,7 +355,7 @@ fn general(mut ui: Ui) -> impl IntoElement {
                 row(
                     t("prefs.prefix"),
                     Some(st.prefix.display().to_string()),
-                    None,
+                    Some(move_prefix_button(ui, &st)),
                 ),
                 row(
                     t("play.flat"),

@@ -2,6 +2,7 @@
 
 mod desktop;
 pub mod pipeline;
+pub mod relocate;
 pub mod state;
 
 pub use pipeline::{Installer, Mode, Options, Step};

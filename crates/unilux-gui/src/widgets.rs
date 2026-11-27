@@ -250,6 +250,21 @@ pub fn severity_tone(s: unilux_core::Severity) -> Tone {
     }
 }
 
+/// The native folder picker; None when cancelled.
+pub async fn pick_folder(title: &str) -> Option<std::path::PathBuf> {
+    let title = title.to_string();
+    tokio::spawn(async move {
+        rfd::AsyncFileDialog::new()
+            .set_title(title)
+            .pick_folder()
+            .await
+            .map(|h| h.path().to_path_buf())
+    })
+    .await
+    .ok()
+    .flatten()
+}
+
 /// Percentage of a progress event, if the total is known.
 pub fn percent(done: u64, total: Option<u64>) -> Option<f32> {
     total
