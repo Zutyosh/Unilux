@@ -6,7 +6,7 @@ use unilux_patches::community::{Crash, DipCause, HITCH_MS};
 use unilux_patches::timeline::Timeline;
 use unilux_service::SavedReport;
 
-use crate::i18n::{DateStyle, lookup, t, t_date, t_with};
+use crate::i18n::{DateStyle, lookup, t, t_args, t_date};
 use crate::state::Ui;
 use crate::svc;
 use crate::theme::{RADIUS_CONTROL, Rgb, T, alpha, size, space};
@@ -358,9 +358,12 @@ impl Component for SessionsTab {
                     worlds(r.worlds)
                 );
                 let line2 = match r.perf {
-                    Some(p) => t_with(
+                    Some(p) => t_args(
                         "ses-avg_line",
-                        &[format!("{:.0}", p.avg_fps), format!("{:.0}", p.low1_fps)],
+                        &[
+                            ("avg", format!("{:.0}", p.avg_fps)),
+                            ("low", format!("{:.0}", p.low1_fps)),
+                        ],
                     ),
                     None => t("ses-no_perf").to_string(),
                 };
@@ -642,12 +645,12 @@ impl Component for SessionDetail {
                     ],
                     marks,
                     move |i| {
-                        t_with(
+                        t_args(
                             "ses-read-fps",
                             &[
-                                clock(step * i as f32),
-                                format!("{:.0}", pts[i].fps),
-                                format!("{:.0}", pts[i].fps_min),
+                                ("time", clock(step * i as f32)),
+                                ("avg", format!("{:.0}", pts[i].fps)),
+                                ("low", format!("{:.0}", pts[i].fps_min)),
                             ],
                         )
                     },
@@ -679,12 +682,12 @@ impl Component for SessionDetail {
                         ],
                         vec![],
                         move |i| {
-                            t_with(
+                            t_args(
                                 "ses-read-load",
                                 &[
-                                    clock(step * i as f32),
-                                    format!("{:.0}", pts2[i].gpu),
-                                    format!("{:.0}", pts2[i].cpu),
+                                    ("time", clock(step * i as f32)),
+                                    ("gpu", format!("{:.0}", pts2[i].gpu)),
+                                    ("cpu", format!("{:.0}", pts2[i].cpu)),
                                 ],
                             )
                         },
@@ -702,7 +705,10 @@ impl Component for SessionDetail {
                     banner(
                         Tone::Warn,
                         t("ses-partial"),
-                        t_with("ses-partial-sub", &[seen, dur(r.duration_s)]),
+                        t_args(
+                            "ses-partial-sub",
+                            &[("seen", seen), ("total", dur(r.duration_s))],
+                        ),
                         None,
                     )
                 });
@@ -731,12 +737,12 @@ impl Component for SessionDetail {
             if let Some(d) = p.dips {
                 slow.push(row(
                     t("ses-dips"),
-                    Some(t_with(
+                    Some(t_args(
                         "ses-dips-sub",
                         &[
-                            d.episodes.to_string(),
-                            format!("{:.0}", d.seconds),
-                            format!("{:.0}", d.fps),
+                            ("count", d.episodes.to_string()),
+                            ("seconds", format!("{:.0}", d.seconds)),
+                            ("fps", format!("{:.0}", d.fps)),
                         ],
                     )),
                     None,
@@ -750,39 +756,48 @@ impl Component for SessionDetail {
                 let mut sub = cause.to_string();
                 if let Some([normal, dip]) = d.gpu_load {
                     sub.push('\n');
-                    sub.push_str(&t_with(
+                    sub.push_str(&t_args(
                         "ses-dips-gpu",
-                        &[format!("{normal:.0}"), format!("{dip:.0}")],
+                        &[
+                            ("normal", format!("{normal:.0}")),
+                            ("dip", format!("{dip:.0}")),
+                        ],
                     ));
                 }
                 slow.push(row(t("ses-cause"), Some(sub), None));
             }
             if let Some(h) = p.hitches {
-                let mut sub = t_with(
+                let mut sub = t_args(
                     "ses-hitch-sub",
                     &[
-                        h.count.to_string(),
-                        format!("{HITCH_MS:.0}"),
-                        format!("{:.0}", h.longest_ms),
+                        ("count", h.count.to_string()),
+                        ("ms", format!("{HITCH_MS:.0}")),
+                        ("longest", format!("{:.0}", h.longest_ms)),
                     ],
                 );
                 if let Some(period) = h.period_s {
                     sub.push('\n');
-                    sub.push_str(&t_with("ses-hitch-period", &[format!("{period:.0}")]));
+                    sub.push_str(&t_args(
+                        "ses-hitch-period",
+                        &[("seconds", format!("{period:.0}"))],
+                    ));
                 }
                 slow.push(row(t("ses-hitch"), Some(sub), None));
             }
             if p.frames > 0 {
                 slow.push(row(
                     t("ses-stutter"),
-                    Some(t_with("ses-stutter-sub", &[p.stutters.to_string()])),
+                    Some(t_args(
+                        "ses-stutter-sub",
+                        &[("count", p.stutters.to_string())],
+                    )),
                     None,
                 ));
                 slow.push(row(
                     t("ses-p99"),
-                    Some(t_with(
+                    Some(t_args(
                         "ses-p99-sub",
-                        &[format!("{:.1}", p.p99_frametime_ms)],
+                        &[("ms", format!("{:.1}", p.p99_frametime_ms))],
                     )),
                     None,
                 ));
@@ -829,7 +844,7 @@ impl Component for SessionDetail {
             row(t("ses-hw-cpu"), Some(hw.cpu.clone()), None),
             row(
                 t("ses-hw-ram"),
-                Some(t_with("ses-hw-ram-v", &[hw.ram_gb.to_string()])),
+                Some(t_args("ses-hw-ram-v", &[("gb", hw.ram_gb.to_string())])),
                 None,
             ),
             row(t("ses-hw-os"), Some(hw.distro.clone()), None),

@@ -5,7 +5,7 @@ use std::time::Duration;
 use freya::prelude::*;
 use unilux_agent::ToolInfo;
 
-use crate::i18n::{t, t_with};
+use crate::i18n::{t, t_args};
 use crate::state::Ui;
 use crate::svc;
 use crate::theme::{T, size, space};
@@ -97,9 +97,9 @@ fn ago(secs: u64) -> String {
     let d = now.saturating_sub(secs);
     match d {
         0..=59 => t("agents-just-now").to_string(),
-        60..=3599 => t_with("agents-min-ago", &[(d / 60).to_string()]),
-        3600..=86_399 => t_with("agents-h-ago", &[(d / 3600).to_string()]),
-        _ => t_with("agents-days-ago", &[(d / 86_400).to_string()]),
+        60..=3599 => t_args("agents-min-ago", &[("count", (d / 60).to_string())]),
+        3600..=86_399 => t_args("agents-h-ago", &[("count", (d / 3600).to_string())]),
+        _ => t_args("agents-days-ago", &[("count", (d / 86_400).to_string())]),
     }
 }
 
@@ -208,9 +208,9 @@ fn view(ui: Ui) -> impl IntoElement {
             if pending.len() == 1 {
                 t("agents-agent-waiting-answer").to_string()
             } else {
-                t_with(
+                t_args(
                     "agents-requests-waiting-answer",
-                    &[pending.len().to_string()],
+                    &[("count", pending.len().to_string())],
                 )
             },
             t("agents-does-nothing-until-decide"),
@@ -221,7 +221,7 @@ fn view(ui: Ui) -> impl IntoElement {
             Tone::Neutral,
             t("agents-ready-agent"),
             match last {
-                Some(at) => t_with("agents-last-call-nothing-changes", &[ago(at)]),
+                Some(at) => t_args("agents-last-call-nothing-changes", &[("ago", ago(at))]),
                 None => t("agents-no-agent-has-connected").to_string(),
             },
             None,
@@ -301,19 +301,22 @@ fn view(ui: Ui) -> impl IntoElement {
         let mut chips = rect().horizontal().spacing(space::S);
         if reads > 0 {
             chips = chips.child(chip(
-                t_with("agents-read-only-2", &[reads.to_string()]),
+                t_args("agents-count-read-only", &[("count", reads.to_string())]),
                 Tone::Ok,
             ));
         }
         if asks_n > 0 {
             chips = chips.child(chip(
-                t_with("agents-approval", &[asks_n.to_string()]),
+                t_args("agents-approval", &[("count", asks_n.to_string())]),
                 Tone::Warn,
             ));
         }
         let own = mine.len() - reads - asks_n;
         if own > 0 {
-            chips = chips.child(chip(t_with("agents-own", &[own.to_string()]), Tone::Accent));
+            chips = chips.child(chip(
+                t_args("agents-own", &[("count", own.to_string())]),
+                Tone::Accent,
+            ));
         }
         cats.push(row(
             name,
@@ -358,7 +361,7 @@ fn view(ui: Ui) -> impl IntoElement {
         .child(if *open.read() {
             t("agents-hide-details").to_string()
         } else {
-            t_with("agents-show-tools", &[tools.len().to_string()])
+            t_args("agents-show-tools", &[("count", tools.len().to_string())])
         })
         .into_element();
 
@@ -411,12 +414,12 @@ fn view(ui: Ui) -> impl IntoElement {
                 .width(Size::fill())
                 .spacing(space::S)
                 .child(group(
-                    t_with(
+                    t_args(
                         "agents-what-agent-do-tools",
                         &[
-                            tools.len().to_string(),
-                            n_read.to_string(),
-                            n_ask.to_string(),
+                            ("tools", tools.len().to_string()),
+                            ("reads", n_read.to_string()),
+                            ("asks", n_ask.to_string()),
                         ],
                     )
                     .as_str(),
@@ -432,7 +435,7 @@ fn view(ui: Ui) -> impl IntoElement {
                 None,
             ),
             sessions::tile(
-                t("agents-failed-refused-2"),
+                t("agents-tile-failed-refused"),
                 failed.to_string(),
                 (failed > 0).then_some(Tone::Warn),
             ),

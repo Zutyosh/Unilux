@@ -1,11 +1,15 @@
 //! Interface text in every language under `locales/`, picked from the
 //! settings or LC_ALL/LC_MESSAGES/LANG. Every visible string goes through
-//! `t`, `t_with`, `t_named`, `t_date`, or `lookup` when it may be missing.
+//! `t`, `t_args`, `t_named`, `t_date`, or `lookup` when it may be missing.
 //! A key missing from the current language falls back to English.
+//!
+//! Keys are stable ids, not copies of the English: when the English text
+//! changes, keep the key. Values are always named (`$count`, `$path`), and
+//! numbers reach Fluent as numbers, so translations can pick plural forms.
 
 use chrono::{DateTime, Datelike, Local, Timelike};
 use fluent_bundle::concurrent::FluentBundle;
-use fluent_bundle::{FluentArgs, FluentResource};
+use fluent_bundle::{FluentArgs, FluentResource, FluentValue};
 use std::{
     borrow::Cow,
     sync::{
@@ -147,24 +151,34 @@ pub fn lookup(key: &str) -> Option<&'static str> {
     }
 }
 
-/// Text with values filled in by position, as `$p1`, `$p2`...
-pub fn t_with(key: &str, values: &[String]) -> String {
-    let mut args = FluentArgs::new();
-    for (i, value) in values.iter().enumerate() {
-        args.set(format!("p{}", i + 1), value.clone());
-    }
-    format(key, Some(&args))
-        .unwrap_or(Cow::Borrowed("?"))
-        .into_owned()
+/// Text with named values, as `$count` or `$path`.
+pub fn t_args(key: &str, values: &[(&str, String)]) -> String {
+    t_named(key, values).unwrap_or_else(|| "?".into())
 }
 
 /// A message with named values, or None when the key does not exist.
 pub fn t_named(key: &str, values: &[(&str, String)]) -> Option<String> {
     let mut args = FluentArgs::new();
     for (name, value) in values {
-        args.set(*name, value.clone());
+        args.set(*name, value_of(value));
     }
     format(key, Some(&args)).map(Cow::into_owned)
+}
+
+/// A plain number becomes a Fluent number, so `{ $count -> [one] ... }`
+/// works; anything else, including "05" or "3.10.2", stays text as written.
+fn value_of(text: &str) -> FluentValue<'static> {
+    let digits = text.strip_prefix('-').unwrap_or(text);
+    let (int, frac) = digits.split_once('.').unwrap_or((digits, ""));
+    let plain = !int.is_empty()
+        && int.bytes().all(|b| b.is_ascii_digit())
+        && frac.bytes().all(|b| b.is_ascii_digit())
+        && (int == "0" || !int.starts_with('0'))
+        && (!digits.contains('.') || !frac.is_empty());
+    match text.parse::<fluent_bundle::types::FluentNumber>() {
+        Ok(n) if plain => n.into(),
+        _ => text.to_string().into(),
+    }
 }
 
 /// Which parts of a date `t_date` shows.
@@ -251,7 +265,7 @@ mod tests {
         }
     }
 
-    /// Literal keys passed to t, t_with, t_named and lookup in the GUI sources,
+    /// Literal keys passed to t, t_args, t_named and lookup in the GUI sources,
     /// except this file, whose tests would match themselves.
     /// (file, call, key) for every literal key passed to a lookup.
     fn keys_used_in_code() -> Vec<(String, &'static str, String)> {
@@ -264,7 +278,7 @@ mod tests {
             }
             let text = std::fs::read_to_string(&path).expect("source is readable");
             let name = path.file_name().unwrap().to_string_lossy().to_string();
-            for call in ["t(", "t_with(", "t_named(", "lookup("] {
+            for call in ["t(", "t_args(", "t_named(", "lookup("] {
                 for (at, _) in text.match_indices(call) {
                     let before = text[..at].chars().next_back();
                     if before.is_some_and(|c| c.is_alphanumeric() || c == '_' || c == '.') {
@@ -327,7 +341,7 @@ mod tests {
 
     /// `t` and `lookup` only hand out text Fluent can lend as is: a
     /// message with a placeable, even a quoted literal like {" "}, would
-    /// show as "?". Such text has to go through `t_with` or `t_named`.
+    /// show as "?". Such text has to go through `t_args` or `t_named`.
     #[test]
     fn plain_lookups_never_show_a_question_mark() {
         let mut broken = Vec::new();
@@ -343,7 +357,100 @@ mod tests {
         }
         assert!(
             broken.is_empty(),
-            "these would show \"?\"; use t_with or t_named: {broken:#?}"
+            "these would show \"?\"; use t_args or t_named: {broken:#?}"
+        );
+    }
+
+    /// Every message of a .ftl file: its key, the variables its
+    /// "# Variables:" comment declares, and the variables its text uses.
+    fn variables(text: &str) -> Vec<(String, BTreeSet<String>, BTreeSet<String>)> {
+        fn names(s: &str) -> BTreeSet<String> {
+            s.split('$')
+                .skip(1)
+                .map(|rest| {
+                    rest.chars()
+                        .take_while(|c| c.is_ascii_alphanumeric() || *c == '_' || *c == '-')
+                        .collect()
+                })
+                .filter(|n: &String| !n.is_empty())
+                .collect()
+        }
+        let mut out: Vec<(String, BTreeSet<String>, BTreeSet<String>)> = Vec::new();
+        let mut declared = BTreeSet::new();
+        for line in text.lines() {
+            if let Some(list) = line.strip_prefix("# Variables:") {
+                declared = names(list);
+            } else if line.starts_with('#') || line.is_empty() {
+            } else if line.starts_with([' ', '}']) {
+                if let Some((_, _, used)) = out.last_mut() {
+                    used.extend(names(line));
+                }
+            } else if let Some((key, value)) = line.split_once(" = ") {
+                out.push((key.to_string(), std::mem::take(&mut declared), names(value)));
+            }
+        }
+        out
+    }
+
+    #[test]
+    fn values_are_named_never_numbered() {
+        for (code, text) in LANGS.iter().chain([&("template", TEMPLATE)]) {
+            for (key, _, used) in variables(text) {
+                let numbered: Vec<_> = used
+                    .iter()
+                    .filter(|n| {
+                        n.len() > 1
+                            && n.starts_with('p')
+                            && n[1..].bytes().all(|b| b.is_ascii_digit())
+                    })
+                    .collect();
+                assert!(
+                    numbered.is_empty(),
+                    "{code}: {key} uses {numbered:?}; name the value instead"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn every_language_uses_the_variables_the_template_declares() {
+        let template: std::collections::BTreeMap<_, _> = variables(TEMPLATE)
+            .into_iter()
+            .map(|(key, declared, _)| (key, declared))
+            .collect();
+        for (code, text) in LANGS {
+            for (key, _, used) in variables(text) {
+                let declared = &template[&key];
+                let unknown: Vec<_> = used.difference(declared).collect();
+                assert!(
+                    unknown.is_empty(),
+                    "{code}.ftl: {key} uses {unknown:?}, which the template does not declare"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn numbers_reach_fluent_as_numbers() {
+        assert!(matches!(value_of("12"), FluentValue::Number(_)));
+        assert!(matches!(value_of("0"), FluentValue::Number(_)));
+        assert!(matches!(value_of("12.5"), FluentValue::Number(_)));
+        assert!(matches!(value_of("-3"), FluentValue::Number(_)));
+        for text in [
+            "05", "3.10.2", "1.", "inf", "NaN", "1e5", "", "WiVRn", "/home/a",
+        ] {
+            assert!(
+                matches!(value_of(text), FluentValue::String(_)),
+                "{text} should stay text"
+            );
+        }
+        // Text kept as written, digits included.
+        assert_eq!(
+            t_args(
+                "events-countdown-hours",
+                &[("hours", "2".into()), ("minutes", "05".into())]
+            ),
+            "2 h 05"
         );
     }
 }
