@@ -5,7 +5,7 @@ use unilux_core::Severity;
 use unilux_diag::checks::CHECKS;
 use unilux_diag::{Finding, FixId};
 
-use crate::i18n::{t, t_named, t_with};
+use crate::i18n::{t, t_args, t_named};
 use crate::state::{Section, Ui};
 use crate::svc;
 use crate::theme::space;
@@ -207,13 +207,13 @@ fn view(mut ui: Ui) -> impl IntoElement {
         if n == 1 {
             t(one).to_string()
         } else {
-            t_with(many, &[n.to_string()])
+            t_args(many, &[("count", n.to_string())])
         }
     };
     let verdict = if findings.is_none() {
         banner(
             Tone::Neutral,
-            t("diag-checking-2"),
+            t("diag-banner-checking"),
             t("diag-takes-few-seconds"),
             Some(rerun),
         )
@@ -239,9 +239,9 @@ fn view(mut ui: Ui) -> impl IntoElement {
         banner(
             Tone::Ok,
             t("diag-all-good"),
-            t_with(
+            t_args(
                 "diag-checks-passed-install-system",
-                &[CHECKS.len().to_string()],
+                &[("count", CHECKS.len().to_string())],
             ),
             Some(rerun),
         )
@@ -306,7 +306,10 @@ fn view(mut ui: Ui) -> impl IntoElement {
                                 match std::fs::write(&p, r) {
                                     Ok(()) => ui.notice(
                                         Severity::Info,
-                                        t_with("diag-report-saved", &[p.display().to_string()]),
+                                        t_args(
+                                            "diag-report-saved",
+                                            &[("path", p.display().to_string())],
+                                        ),
                                     ),
                                     Err(e) => ui.error.set(Some(e.to_string())),
                                 }

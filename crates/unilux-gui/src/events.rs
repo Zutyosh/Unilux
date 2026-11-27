@@ -5,7 +5,7 @@ use chrono::{Local, TimeZone};
 use freya::prelude::*;
 use unilux_service::{Account, LoginStep, TwoFactor, TwoFactorMethod, UpcomingEvent};
 
-use crate::i18n::{DateStyle, t, t_date, t_named, t_with};
+use crate::i18n::{DateStyle, t, t_args, t_date, t_named};
 use crate::state::{Screen, Section, Ui};
 use crate::svc;
 use crate::theme::{RADIUS_CONTROL, RADIUS_PILL, T, alpha, glass, size, space};
@@ -31,7 +31,7 @@ pub fn online_badge(ui: Ui) -> Option<Element> {
             }))
             .child(
                 label()
-                    .text(t_with("events-online", &[o.current.to_string()]))
+                    .text(t_args("events-online", &[("count", o.current.to_string())]))
                     .font_size(size::SMALL)
                     .font_weight(FontWeight::MEDIUM)
                     .color(T.text),
@@ -161,12 +161,18 @@ fn countdown(ev: &UpcomingEvent, next: bool) -> Rect {
         let s = ev.start - now;
         let (d, h, m) = (s / 86400, s % 86400 / 3600, s % 3600 / 60);
         let t = match d {
-            0 if h == 0 => format!("{m} min"),
-            0 => format!("{h} h {m:02}"),
-            d => t_with("events-countdown-days", &[d.to_string(), h.to_string()]),
+            0 if h == 0 => t_args("events-countdown-minutes", &[("minutes", m.to_string())]),
+            0 => t_args(
+                "events-countdown-hours",
+                &[("hours", h.to_string()), ("minutes", format!("{m:02}"))],
+            ),
+            d => t_args(
+                "events-countdown-days",
+                &[("days", d.to_string()), ("hours", h.to_string())],
+            ),
         };
         (
-            t_with("events-text", &[t]),
+            t_args("events-starts-in", &[("time", t)]),
             if next { Tone::Accent } else { Tone::Neutral },
         )
     };
@@ -210,10 +216,10 @@ fn meta(ev: &UpcomingEvent) -> Option<String> {
         parts.push(l.clone());
     }
     if let Some(c) = &ev.creator {
-        parts.push(t_with("events-hosted", std::slice::from_ref(c)));
+        parts.push(t_args("events-hosted", &[("host", c.clone())]));
     }
     if let Some(n) = ev.attendees.filter(|n| *n > 0) {
-        parts.push(t_with("events-going", &[n.to_string()]));
+        parts.push(t_args("events-going", &[("count", n.to_string())]));
     }
     (!parts.is_empty()).then(|| parts.join(", "))
 }
@@ -355,10 +361,10 @@ impl Component for AccountForm {
             let hint = match m {
                 TwoFactorMethod::Authenticator => t("events-enter-6-digit-code").to_string(),
                 TwoFactorMethod::Sms => match (&c.phone, *sms_sent.read()) {
-                    (Some(p), true) => t_with("events-code-sent", std::slice::from_ref(p)),
+                    (Some(p), true) => t_args("events-code-sent", &[("phone", p.clone())]),
                     (_, true) => t("events-code-sent-sms").to_string(),
-                    (Some(p), false) => t_with("events-get-code-sms", std::slice::from_ref(p)),
-                    (None, false) => t("events-get-code-sms-2").to_string(),
+                    (Some(p), false) => t_args("events-get-code-sms", &[("phone", p.clone())]),
+                    (None, false) => t("events-get-code-sms-no-number").to_string(),
                 },
                 TwoFactorMethod::BackupCode => t("events-enter-one-backup-codes").to_string(),
             };

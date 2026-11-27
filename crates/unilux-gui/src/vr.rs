@@ -5,7 +5,7 @@ use std::time::Duration;
 use freya::prelude::*;
 use unilux_system::{OpenVrLayer, RuntimeKind, VrStatus, VrTuning};
 
-use crate::i18n::{t, t_with};
+use crate::i18n::{t, t_args};
 use crate::state::{Section, Ui};
 use crate::svc;
 use crate::theme::{T, alpha, size, space};
@@ -96,19 +96,21 @@ fn chain(v: &VrStatus) -> Vec<Step> {
 
     let what1 = t("vr-program-talks-headset-wivrn");
     let mut s1 = match (&name, v.installed.is_empty()) {
-        (Some(n), _) if broken => Step::new(t("vr-vr-runtime"), what1, St::Todo, t("vr-broken"))
-            .value(n.clone())
-            .todo(t("vr-points-file-no-longer")),
+        (Some(n), _) if broken => {
+            Step::new(t("vr-vr-runtime"), what1, St::Todo, t("vr-runtime-broken"))
+                .value(n.clone())
+                .todo(t("vr-points-file-no-longer"))
+        }
         (Some(n), _) => {
             Step::new(t("vr-vr-runtime"), what1, St::Ok, t("vr-active")).value(n.clone())
         }
-        (None, true) => Step::new(t("vr-vr-runtime"), what1, St::Todo, t("vr-missing"))
+        (None, true) => Step::new(t("vr-vr-runtime"), what1, St::Todo, t("vr-runtime-missing"))
             .todo(t("vr-install-wivrn-standalone-headset")),
         (None, false) => Step::new(t("vr-vr-runtime"), what1, St::Todo, t("vr-inactive"))
             .value(installed.clone())
-            .todo(t_with(
+            .todo(t_args(
                 "vr-start-then-connect-headset",
-                std::slice::from_ref(&installed),
+                &[("runtime", installed.clone())],
             )),
     };
     if kind == Some(RuntimeKind::SteamVr) {
@@ -120,9 +122,9 @@ fn chain(v: &VrStatus) -> Vec<Step> {
         (None, _) => Step::new(t("vr-runtime-service"), what2, St::Wait, t("vr-waiting")),
         (Some(_), true) => Step::new(t("vr-runtime-service"), what2, St::Ok, t("vr-running")),
         (Some(n), false) => Step::new(t("vr-runtime-service"), what2, St::Todo, t("vr-stopped"))
-            .todo(t_with(
-                "vr-start-then-connect-headset-2",
-                std::slice::from_ref(n),
+            .todo(t_args(
+                "vr-start-service-then-connect",
+                &[("runtime", n.clone())],
             )),
     };
 
@@ -139,13 +141,13 @@ fn chain(v: &VrStatus) -> Vec<Step> {
             .value(t("vr-runtime-speaks-openvr-itself"))
     } else {
         match &v.openvr {
-            None => Step::new(n3, what3, St::Todo, t("vr-missing-2"))
+            None => Step::new(n3, what3, St::Todo, t("vr-bridge-missing"))
                 .todo(t("vr-install-xrizer-opencomposite-runtime")),
-            Some(o) if !o.exists => Step::new(n3, what3, St::Todo, t("vr-broken-2"))
+            Some(o) if !o.exists => Step::new(n3, what3, St::Todo, t("vr-bridge-broken"))
                 .value(layer_name(o.layer))
-                .todo(t_with(
+                .todo(t_args(
                     "vr-registered-file-does-not",
-                    &[o.path.display().to_string()],
+                    &[("file", o.path.display().to_string())],
                 )),
             Some(o) if o.layer == OpenVrLayer::SteamVr => {
                 Step::new(n3, what3, St::Todo, t("vr-wrong-target"))
@@ -163,7 +165,7 @@ fn tuning(t: &VrTuning) -> Vec<Step> {
     let mut out = Vec::new();
     if let Some(c) = &t.compositor {
         let name = crate::i18n::t("vr-compositor-priority");
-        let what = t_with("vr-when-cpu-busy-has", std::slice::from_ref(&c.name));
+        let what = t_args("vr-when-cpu-busy-has", &[("compositor", c.name.clone())]);
         out.push(match c.realtime {
             Some(true) => Step::new(name, what, St::Ok, crate::i18n::t("vr-ok")),
             Some(false) => Step::new(name, what, St::Todo, crate::i18n::t("vr-fix"))
@@ -181,7 +183,10 @@ fn tuning(t: &VrTuning) -> Vec<Step> {
             Step::new(name, what, St::Ok, crate::i18n::t("vr-vr-profile"))
         } else {
             Step::new(name, what, St::Todo, crate::i18n::t("vr-fix"))
-                .value(t_with("vr-active-profile", std::slice::from_ref(&p.active)))
+                .value(t_args(
+                    "vr-active-profile",
+                    &[("profile", p.active.clone())],
+                ))
                 .todo(crate::i18n::t("vr-lasts-until-reboot-keep"))
                 .cmd(format!(
                     "echo {idx} | sudo tee /sys/class/drm/{}/device/pp_power_profile_mode",
@@ -195,7 +200,7 @@ fn tuning(t: &VrTuning) -> Vec<Step> {
                 crate::i18n::t("vr-xr-overlay"),
                 crate::i18n::t("vr-overlay-second-client-compositor"),
                 St::Wait,
-                crate::i18n::t("vr-running-2"),
+                crate::i18n::t("vr-overlay-running"),
             )
             .value(t.overlays.join(", ")),
         );
@@ -285,7 +290,7 @@ fn view(mut ui: Ui) -> impl IntoElement {
     let perf_sub = if svc().performance_wrapper().is_some() {
         t("vr-cachyos-s-game-performance")
     } else {
-        t("vr-shader-cache-grows-12")
+        t("vr-shader-cache-grows")
     };
     // The runtime comes and goes while the user starts WiVRn: follow it.
     use_future(move || async move {
@@ -320,14 +325,17 @@ fn view(mut ui: Ui) -> impl IntoElement {
         banner(
             Tone::Ok,
             t("vr-ready-vr"),
-            t_with("vr-running-game-will-find", &[name]),
+            t_args("vr-running-game-will-find", &[("runtime", name)]),
             Some(recheck),
         )
     } else {
         let head = if todo == 1 {
             t("vr-one-step-fix-before").to_string()
         } else {
-            t_with("vr-steps-fix-before-vr", &[todo.max(1).to_string()])
+            t_args(
+                "vr-steps-fix-before-vr",
+                &[("count", todo.max(1).to_string())],
+            )
         };
         banner(
             Tone::Warn,

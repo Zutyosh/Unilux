@@ -2,6 +2,12 @@
 ### Copy this file to locales/<code>.ftl (for example de.ftl or pt-BR.ftl),
 ### replace every {""} with the translation, and add the language to LANGS in src/i18n.rs.
 ### Keep every { $name } variable listed in the comment above a message.
+### Numbers such as $count arrive as numbers, so a message can pick its plural:
+###   { $count ->
+###       [one] { $count } problem
+###      *[other] { $count } problems
+###   }
+### Keys are ids: never rename one because its English text changed.
 
 agents-activity-log = {""}
 agents-acts-own = {""}
@@ -10,7 +16,7 @@ agents-agent-then-shares-window = {""}
 agents-agent-waiting-answer = {""}
 agents-agents = {""}
 agents-another-agent-cursor-zed = {""}
-# Variables: $p1
+# Variables: $count
 agents-approval = {""}
 agents-approve = {""}
 agents-audit = {""}
@@ -20,57 +26,57 @@ agents-checks-fixes = {""}
 agents-claude-code = {""}
 agents-coding-agent-like-claude = {""}
 agents-connect-agent = {""}
-# Variables: $p1
+# Variables: $count
+agents-count-read-only = {""}
+# Variables: $count
 agents-days-ago = {""}
 agents-deny = {""}
 agents-does-nothing-until-decide = {""}
 agents-done = {""}
 agents-every-call-agent-makes = {""}
 agents-failed-refused = {""}
-agents-failed-refused-2 = {""}
 agents-game-updates = {""}
-# Variables: $p1
+# Variables: $count
 agents-h-ago = {""}
 agents-hide-details = {""}
 agents-inspect-compile-install-patches = {""}
 agents-just-now = {""}
 agents-keep-unilux-open = {""}
 agents-last-call = {""}
-# Variables: $p1
+# Variables: $ago
 agents-last-call-nothing-changes = {""}
 agents-lead = {""}
-# Variables: $p1
+# Variables: $count
 agents-min-ago = {""}
 agents-needs-approval = {""}
 agents-no-agent-has-connected = {""}
 agents-nothing-yet = {""}
-# Variables: $p1
+# Variables: $count
 agents-own = {""}
 agents-pending = {""}
 agents-proton = {""}
 agents-read-game-sessions-community = {""}
 agents-read-how-unilux-game = {""}
 agents-read-only = {""}
-# Variables: $p1
-agents-read-only-2 = {""}
 agents-read-write-build-use = {""}
 agents-ready-agent = {""}
 agents-recent-activity = {""}
 agents-recipes = {""}
 agents-refuse = {""}
 agents-requested-agent = {""}
-# Variables: $p1
+# Variables: $count
 agents-requests-waiting-answer = {""}
 agents-run-diagnostics-apply-fixes = {""}
 agents-run-once-terminal = {""}
 agents-see-proton-versions-switch = {""}
 agents-sessions-community = {""}
-# Variables: $p1
+# Variables: $count
 agents-show-tools = {""}
 agents-socket = {""}
 agents-start-stop-game-update = {""}
 agents-state-logs = {""}
 agents-technical-details = {""}
+agents-tile-failed-refused = {""}
 agents-tool-apply_fix = {""}
 agents-tool-community_install = {""}
 agents-tool-community_list = {""}
@@ -107,7 +113,7 @@ agents-tool-update_check = {""}
 agents-tool-vr_status = {""}
 agents-vr-headset = {""}
 agents-waiting = {""}
-# Variables: $p1, $p2, $p3
+# Variables: $tools, $reads, $asks
 agents-what-agent-do-tools = {""}
 agents-wine-patches = {""}
 app-tagline = {""}
@@ -136,6 +142,7 @@ diag-all-good = {""}
 diag-anonymous-bug-report = {""}
 diag-apply = {""}
 diag-ask-help = {""}
+diag-banner-checking = {""}
 diag-check-again = {""}
 diag-check-desktop_entry-name = {""}
 diag-check-desktop_entry-what = {""}
@@ -166,8 +173,7 @@ diag-check-video-what = {""}
 diag-check-vr_perf-name = {""}
 diag-check-vr_perf-what = {""}
 diag-checking = {""}
-diag-checking-2 = {""}
-# Variables: $p1
+# Variables: $count
 diag-checks-passed-install-system = {""}
 diag-clear-downloads = {""}
 diag-details = {""}
@@ -186,11 +192,11 @@ diag-one-thing-worth-checking = {""}
 diag-open-logs = {""}
 diag-open-vr-page = {""}
 diag-problem = {""}
-# Variables: $p1
+# Variables: $count
 diag-problems-fix = {""}
 diag-repair = {""}
 diag-report = {""}
-# Variables: $p1
+# Variables: $path
 diag-report-saved = {""}
 diag-run = {""}
 diag-save-report = {""}
@@ -198,7 +204,7 @@ diag-start-these-game-probably = {""}
 diag-step-missing-between-headset = {""}
 diag-stop-game = {""}
 diag-takes-few-seconds = {""}
-# Variables: $p1
+# Variables: $count
 diag-things-worth-checking = {""}
 diag-use-automatic-detection = {""}
 diag-vr-headset-needs-attention = {""}
@@ -211,25 +217,29 @@ events-app = {""}
 events-backup-code = {""}
 events-checking = {""}
 events-code = {""}
-# Variables: $p1
+# Variables: $phone
 events-code-sent = {""}
 events-code-sent-sms = {""}
 events-confirm = {""}
-# Variables: $p1, $p2
+# Variables: $days, $hours
 events-countdown-days = {""}
+# Variables: $hours, $minutes
+events-countdown-hours = {""}
+# Variables: $minutes
+events-countdown-minutes = {""}
 events-e-mail-user-name = {""}
 events-enter-6-digit-code = {""}
 events-enter-one-backup-codes = {""}
-# Variables: $p1
+# Variables: $phone
 events-get-code-sms = {""}
-events-get-code-sms-2 = {""}
-# Variables: $p1
+events-get-code-sms-no-number = {""}
+# Variables: $count
 events-going = {""}
-# Variables: $p1
+# Variables: $host
 events-hosted = {""}
 events-no-event-planned-now = {""}
 events-now = {""}
-# Variables: $p1
+# Variables: $count
 events-online = {""}
 events-optional-unlocks-events-main = {""}
 events-password = {""}
@@ -243,8 +253,8 @@ events-sign-somnium-space-account = {""}
 events-signed-unilux-keeps-only = {""}
 events-signing = {""}
 events-somnium-events = {""}
-# Variables: $p1
-events-text = {""}
+# Variables: $time
+events-starts-in = {""}
 events-verification-code = {""}
 # Variables: $profile, $file
 finding-amd-power-profile-advice = {""}
@@ -533,7 +543,7 @@ recipes-worlds = {""}
 recipes-yours = {""}
 recipes-yours-none = {""}
 recipes-yours-none-sub = {""}
-# Variables: $p1, $p2
+# Variables: $avg, $low
 ses-avg_line = {""}
 ses-back = {""}
 ses-cause = {""}
@@ -550,9 +560,9 @@ ses-delete = {""}
 ses-delete-confirm = {""}
 ses-delete-sub = {""}
 ses-dips = {""}
-# Variables: $p1, $p2
+# Variables: $normal, $dip
 ses-dips-gpu = {""}
-# Variables: $p1, $p2, $p3
+# Variables: $count, $seconds, $fps
 ses-dips-sub = {""}
 ses-g-errors = {""}
 ses-g-errors-sub = {""}
@@ -562,9 +572,9 @@ ses-g-videos = {""}
 ses-g-videos-sub = {""}
 ses-g-worlds = {""}
 ses-hitch = {""}
-# Variables: $p1
+# Variables: $seconds
 ses-hitch-period = {""}
-# Variables: $p1, $p2, $p3
+# Variables: $count, $ms, $longest
 ses-hitch-sub = {""}
 ses-hw = {""}
 ses-hw-cpu = {""}
@@ -573,7 +583,7 @@ ses-hw-gpu = {""}
 ses-hw-kernel = {""}
 ses-hw-os = {""}
 ses-hw-ram = {""}
-# Variables: $p1
+# Variables: $gb
 ses-hw-ram-v = {""}
 ses-hw-vr = {""}
 ses-lg-avg = {""}
@@ -585,18 +595,18 @@ ses-no_chart = {""}
 ses-no_chart-sub = {""}
 ses-no_perf = {""}
 ses-p99 = {""}
-# Variables: $p1
+# Variables: $ms
 ses-p99-sub = {""}
 ses-partial = {""}
-# Variables: $p1, $p2
+# Variables: $seen, $total
 ses-partial-sub = {""}
-# Variables: $p1, $p2, $p3
+# Variables: $time, $avg, $low
 ses-read-fps = {""}
-# Variables: $p1, $p2, $p3
+# Variables: $time, $gpu, $cpu
 ses-read-load = {""}
 ses-slow = {""}
 ses-stutter = {""}
-# Variables: $p1
+# Variables: $count
 ses-stutter-sub = {""}
 ses-sum-count = {""}
 ses-sum-crash = {""}
@@ -670,12 +680,12 @@ update-install = {""}
 update-package = {""}
 update-restart = {""}
 vr-active = {""}
-# Variables: $p1
+# Variables: $profile
 vr-active-profile = {""}
 vr-allow-once-then-restart = {""}
 vr-amd-gpu-power-profile = {""}
-vr-broken = {""}
-vr-broken-2 = {""}
+vr-bridge-broken = {""}
+vr-bridge-missing = {""}
 vr-cachyos-s-game-performance = {""}
 vr-check-again = {""}
 vr-compositor-priority = {""}
@@ -691,8 +701,6 @@ vr-install-wivrn-standalone-headset = {""}
 vr-install-xrizer-opencomposite-runtime = {""}
 vr-lasts-until-reboot-keep = {""}
 vr-launch = {""}
-vr-missing = {""}
-vr-missing-2 = {""}
 vr-no-compositor-amd-power = {""}
 vr-not-needed = {""}
 vr-nothing-report = {""}
@@ -702,31 +710,33 @@ vr-open-sessions = {""}
 vr-openvr-bridge = {""}
 vr-openvr-registration = {""}
 vr-openvr-still-points-steamvr = {""}
+vr-overlay-running = {""}
 vr-overlay-second-client-compositor = {""}
 vr-performance-mode = {""}
 vr-place = {""}
 vr-points-file-no-longer = {""}
 vr-program-talks-headset-wivrn = {""}
 vr-ready-vr = {""}
-# Variables: $p1
+# Variables: $file
 vr-registered-file-does-not = {""}
 vr-running = {""}
-vr-running-2 = {""}
-# Variables: $p1
+# Variables: $runtime
 vr-running-game-will-find = {""}
+vr-runtime-broken = {""}
 vr-runtime-library = {""}
 vr-runtime-manifest = {""}
+vr-runtime-missing = {""}
 vr-runtime-service = {""}
 vr-runtime-speaks-openvr-itself = {""}
-vr-shader-cache-grows-12 = {""}
+vr-shader-cache-grows = {""}
 vr-smooth-frames = {""}
 vr-somnium-space-played-vr = {""}
 vr-somnium-speaks-openvr-layer = {""}
-# Variables: $p1
+# Variables: $runtime
+vr-start-service-then-connect = {""}
+# Variables: $runtime
 vr-start-then-connect-headset = {""}
-# Variables: $p1
-vr-start-then-connect-headset-2 = {""}
-# Variables: $p1
+# Variables: $count
 vr-steps-fix-before-vr = {""}
 vr-stopped = {""}
 vr-technical-details = {""}
@@ -740,7 +750,7 @@ vr-vr-runtime = {""}
 vr-wait-headset = {""}
 vr-waiting = {""}
 vr-what-happened-game = {""}
-# Variables: $p1
+# Variables: $compositor
 vr-when-cpu-busy-has = {""}
 vr-wrong-target = {""}
 vr-xr-overlay = {""}
