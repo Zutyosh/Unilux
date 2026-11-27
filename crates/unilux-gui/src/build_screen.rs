@@ -12,7 +12,7 @@ use crate::loader::OrbitLoader;
 use crate::state::Ui;
 use crate::svc;
 use crate::theme::{RADIUS_PANEL, T, alpha, size, space};
-use crate::widgets::{Tone, body, dot, muted};
+use crate::widgets::{Tone, body, dot, muted, progress_bar};
 
 /// The stages of a build, in order, with the share of the bar each ends at.
 const STAGES: &[(&str, f32)] = &[
@@ -176,13 +176,7 @@ impl Component for BuildScreen {
                             .color(T.text),
                     )
                     .child(muted(t("build.sub")))
-                    .child(
-                        rect().width(Size::fill()).child(
-                            ProgressBar::new((p.fraction * 100.).clamp(1., 100.))
-                                .show_progress(true)
-                                .width(Size::fill()),
-                        ),
-                    )
+                    .child(progress_bar(p.fraction * 100.))
                     .child(muted(format!(
                         "{} · {}:{:02}",
                         t(STAGES[p.stage].0),

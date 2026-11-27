@@ -312,6 +312,22 @@ mod tests {
             recipes::TEST_TAB.with(|t| t.set(i as u8 % 4));
             setup::TEST_STEP.with(|s| s.set((4..7).contains(&i).then(|| (i - 4) as u8)));
             state::TEST_BUILD.with(|b| b.set(*name == "build"));
+            if *name == "build" {
+                for line in [
+                    "patch_build: started",
+                    "make dlls/secur32",
+                    "make dlls/crypt32",
+                ] {
+                    let _ = SERVICE
+                        .get()
+                        .unwrap()
+                        .events()
+                        .send(unilux_core::Event::Log {
+                            source: unilux_core::LogSource::Stdout,
+                            line: line.into(),
+                        });
+                }
+            }
             let (mut r, _) = TestingRunner::new(app::app, size, |_| {}, 1.0);
             r.sync_and_update();
             r.poll(
