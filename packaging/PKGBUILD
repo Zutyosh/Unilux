@@ -1,6 +1,6 @@
 # Maintainer: Unilux contributors
 pkgname=unilux
-pkgver=0.3.2
+pkgver=0.4.0
 pkgrel=1
 pkgdesc="Install, launch and troubleshoot Somnium Space on Linux"
 arch=('x86_64')
