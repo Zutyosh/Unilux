@@ -146,6 +146,16 @@ impl Launcher {
             )));
         }
         let (_, _) = self.plan()?;
+        if self.config.vr_power_profile {
+            match crate::vrpower::set_vr_power_profile(self.host.as_ref()).await {
+                Ok(0) => {}
+                Ok(_) => self.notice(Severity::Info, "AMD GPU switched to its VR power profile."),
+                Err(e) => self.notice(
+                    Severity::Warn,
+                    format!("AMD GPU power profile unchanged: {e}"),
+                ),
+            }
+        }
         if !opts.allow_flat && self.config.wait_for_headset && !self.wait_for_runtime().await? {
             return Err(Error::Invalid(
                 "The VR runtime did not become ready in time. Run `unilux vr` to see what is missing, or launch in desktop mode.".into(),
