@@ -4,7 +4,9 @@ pub mod env;
 pub mod launch;
 pub mod logs;
 pub mod registry;
+pub mod vrpower;
 
 pub use env::{LaunchEnv, build_env, performance_wrapper};
 pub use launch::{LaunchOptions, Launcher, stop_prefix};
 pub use logs::LogBuffer;
+pub use vrpower::set_vr_power_profile;

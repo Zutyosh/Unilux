@@ -229,6 +229,11 @@ impl Service {
         unilux_system::probe(self.inner.host.as_ref())
     }
 
+    /// Put AMD GPUs in their VR power profile; polkit asks for the password.
+    pub async fn set_vr_power_profile(&self) -> Result<usize> {
+        unilux_runner::set_vr_power_profile(self.inner.host.as_ref()).await
+    }
+
     pub fn processes(&self) -> Vec<ProcInfo> {
         unilux_system::procs::prefix_processes(&self.prefix())
     }

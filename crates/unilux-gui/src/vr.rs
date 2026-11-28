@@ -3,6 +3,7 @@
 use std::time::Duration;
 
 use freya::prelude::*;
+use unilux_core::{Error, Severity};
 use unilux_system::{OpenVrLayer, RuntimeKind, VrStatus, VrTuning};
 
 use crate::i18n::{t, t_args};
@@ -36,6 +37,8 @@ struct Step {
     chip: &'static str,
     todo: Option<String>,
     cmd: Option<String>,
+    /// Unilux can run `cmd` itself.
+    runnable: bool,
 }
 
 impl Step {
@@ -49,6 +52,7 @@ impl Step {
             chip,
             todo: None,
             cmd: None,
+            runnable: false,
         }
     }
     fn value(mut self, v: impl Into<String>) -> Self {
@@ -61,6 +65,10 @@ impl Step {
     }
     fn cmd(mut self, v: impl Into<String>) -> Self {
         self.cmd = Some(v.into());
+        self
+    }
+    fn runnable(mut self) -> Self {
+        self.runnable = true;
         self
     }
     fn note(mut self, v: &'static str) -> Self {
@@ -188,10 +196,8 @@ fn tuning(t: &VrTuning) -> Vec<Step> {
                     &[("profile", p.active.clone())],
                 ))
                 .todo(crate::i18n::t("vr-lasts-until-reboot-keep"))
-                .cmd(format!(
-                    "echo {idx} | sudo tee /sys/class/drm/{}/device/pp_power_profile_mode",
-                    p.card
-                ))
+                .cmd(format!("echo {idx} | sudo tee {}", p.path().display()))
+                .runnable()
         });
     }
     if !t.overlays.is_empty() {
@@ -216,7 +222,7 @@ fn tone(s: St) -> Tone {
     }
 }
 
-fn step_row(num: Option<usize>, s: &Step) -> Element {
+fn step_row(num: Option<usize>, s: &Step, action: Option<Element>) -> Element {
     let tone = tone(s.st);
     let badge = num.map(|n| {
         rect()
@@ -260,7 +266,8 @@ fn step_row(num: Option<usize>, s: &Step) -> Element {
                         .clone()
                         .map(|t| label().text(t).font_size(size::SMALL).color(T.text)),
                 )
-                .maybe_child(s.cmd.clone().map(mono_box)),
+                .maybe_child(s.cmd.clone().map(mono_box))
+                .maybe_child(action),
         )
         .child(chip(s.chip, tone))
         .into_element()
@@ -284,6 +291,15 @@ fn view(mut ui: Ui) -> impl IntoElement {
         cfg.performance = v;
         match svc().set_config(cfg) {
             Ok(()) => perf.set(v),
+            Err(e) => ui.error.set(Some(e.to_string())),
+        }
+    });
+    let mut power = use_state(|| svc().config().vr_power_profile);
+    let power_setter = WritableSetter::new(power, move |v: bool| {
+        let mut cfg = svc().config();
+        cfg.vr_power_profile = v;
+        match svc().set_config(cfg) {
+            Ok(()) => power.set(v),
             Err(e) => ui.error.set(Some(e.to_string())),
         }
     });
@@ -349,7 +365,7 @@ fn view(mut ui: Ui) -> impl IntoElement {
         steps
             .iter()
             .enumerate()
-            .map(|(i, s)| step_row(Some(i + 1), s))
+            .map(|(i, s)| step_row(Some(i + 1), s, None))
             .collect(),
     );
 
@@ -363,7 +379,33 @@ fn view(mut ui: Ui) -> impl IntoElement {
             crate::i18n::t("vr-ok"),
         ));
     }
-    let tune_rows = divided(tune_steps.iter().map(|s| step_row(None, s)).collect());
+    let apply_now = move || {
+        Button::new()
+            .on_press(move |_| {
+                // Closing the password dialog is a choice, not an error.
+                let fut = async {
+                    match svc().set_vr_power_profile().await {
+                        Err(Error::Cancelled) => Ok(false),
+                        r => r.map(|_| true),
+                    }
+                };
+                ui.run(fut, move |applied| {
+                    tun.set(svc().system().vr_tuning);
+                    if applied {
+                        ui.notice(Severity::Info, crate::i18n::t("vr-power-profile-applied"));
+                    }
+                })
+            })
+            .child(crate::i18n::t("vr-apply-now"))
+            .into_element()
+    };
+    let tune_rows = divided(
+        tune_steps
+            .iter()
+            .map(|s| step_row(None, s, s.runnable.then(apply_now)))
+            .collect(),
+    );
+    let has_vr_profile = t.amd_power.iter().any(|p| p.vr_index.is_some()) || *power.read();
 
     let mut details = Vec::new();
     if let Some(r) = &v.active {
@@ -394,9 +436,8 @@ fn view(mut ui: Ui) -> impl IntoElement {
         ))
         .child(verdict)
         .child(group(crate::i18n::t("vr-headset-game"), chain_rows))
-        .child(group(
-            crate::i18n::t("vr-launch"),
-            vec![
+        .child(group(crate::i18n::t("vr-launch"), {
+            let mut rows = vec![
                 crate::widgets::row(
                     crate::i18n::t("vr-wait-headset"),
                     Some(crate::i18n::t("vr-if-runtime-not-ready").into()),
@@ -407,8 +448,16 @@ fn view(mut ui: Ui) -> impl IntoElement {
                     Some(perf_sub.into()),
                     Some(Switch::new(perf_setter).into_element()),
                 ),
-            ],
-        ))
+            ];
+            if has_vr_profile {
+                rows.push(crate::widgets::row(
+                    crate::i18n::t("vr-power-profile-launch"),
+                    Some(crate::i18n::t("vr-power-profile-launch-sub").into()),
+                    Some(Switch::new(power_setter).into_element()),
+                ));
+            }
+            rows
+        }))
         .child(group(crate::i18n::t("vr-smooth-frames"), tune_rows))
         .child(group(
             crate::i18n::t("vr-what-happened-game"),

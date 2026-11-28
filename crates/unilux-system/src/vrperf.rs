@@ -62,19 +62,36 @@ pub struct PowerProfile {
 pub const COMPOSITORS: &[&str] = &["wivrn-server", "monado-service"];
 pub const OVERLAYS: &[&str] = &["wayvr", "wlx-overlay-s", "xrdesktop", "stardust-xr-ser"];
 
+impl PowerProfile {
+    /// The sysfs file that selects the profile.
+    pub fn path(&self) -> PathBuf {
+        profile_path(&self.card)
+    }
+
+    /// The VR profile exists and is not the active one.
+    pub fn needs_vr(&self) -> bool {
+        self.vr_index.is_some() && self.active != "VR"
+    }
+}
+
+fn profile_path(card: &str) -> PathBuf {
+    Path::new("/sys/class/drm")
+        .join(card)
+        .join("device/pp_power_profile_mode")
+}
+
+/// Power profiles of the AMD GPUs, for those whose driver exposes them.
+pub fn amd_power(host: &dyn Host, gpus: &[GpuInfo]) -> Vec<PowerProfile> {
+    gpus.iter()
+        .filter(|g| g.vendor == "AMD")
+        .filter_map(|g| power_profile(&g.card, &host.read(&profile_path(&g.card))?))
+        .collect()
+}
+
 pub fn vr_tuning(host: &dyn Host, gpus: &[GpuInfo]) -> VrTuning {
     VrTuning {
         compositor: compositor(host),
-        amd_power: gpus
-            .iter()
-            .filter(|g| g.vendor == "AMD")
-            .filter_map(|g| {
-                let p = Path::new("/sys/class/drm")
-                    .join(&g.card)
-                    .join("device/pp_power_profile_mode");
-                power_profile(&g.card, &host.read(&p)?)
-            })
-            .collect(),
+        amd_power: amd_power(host, gpus),
         overlays: overlays(host),
         memory: memory(
             host.read(Path::new("/proc/sys/vm/swappiness")).as_deref(),
@@ -159,6 +176,15 @@ mod tests {
         )
         .unwrap();
         assert_eq!(p.active, "VR");
+        assert!(!p.needs_vr());
+        let p = power_profile("card1", t).unwrap();
+        assert!(p.needs_vr());
+        assert_eq!(
+            p.path(),
+            Path::new("/sys/class/drm/card1/device/pp_power_profile_mode")
+        );
+        let no_vr = power_profile("card1", &t.replace(" 4             VR :\n", "")).unwrap();
+        assert!(!no_vr.needs_vr());
     }
 
     #[test]

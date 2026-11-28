@@ -819,6 +819,7 @@ vr-active = {""}
 vr-active-profile = {""}
 vr-allow-once-then-restart = {""}
 vr-amd-gpu-power-profile = {""}
+vr-apply-now = {""}
 vr-bridge-broken = {""}
 vr-bridge-missing = {""}
 vr-cachyos-s-game-performance = {""}
@@ -850,6 +851,9 @@ vr-overlay-second-client-compositor = {""}
 vr-performance-mode = {""}
 vr-place = {""}
 vr-points-file-no-longer = {""}
+vr-power-profile-applied = {""}
+vr-power-profile-launch = {""}
+vr-power-profile-launch-sub = {""}
 vr-program-talks-headset-wivrn = {""}
 vr-ready-vr = {""}
 # Variables: $file

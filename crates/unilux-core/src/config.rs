@@ -46,6 +46,9 @@ pub struct Config {
     /// wrapper when installed (CPU in performance until the game exits)
     /// and a 12 GB shader cache.
     pub performance: bool,
+    /// Switch AMD GPUs to their VR power profile before each launch
+    /// (through pkexec, so polkit asks for the password once per boot).
+    pub vr_power_profile: bool,
     /// `stable` or `beta` (pre-releases too).
     pub update_channel: String,
 }
@@ -67,6 +70,7 @@ impl Default for Config {
             locale: None,
             check_updates: true,
             performance: true,
+            vr_power_profile: false,
             update_channel: "stable".into(),
         }
     }
